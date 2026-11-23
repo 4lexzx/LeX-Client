@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
+    "outDir": "dist/tsc",
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@lex/shared": ["../../packages/shared/src"],
+      "@lex/ui-components": ["../../packages/ui-components/src"],
+      "@lex/module-sdk": ["../../packages/module-sdk/src"],
+      "@lex/compatibility": ["../../packages/compatibility/src"],
+      "@lex/cosmetics": ["../../cosmetics/src"]
+    }
+  },
+  "include": ["src", "electron", "tests"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,35 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Artefactos de compilación / empaquetado
+dist/
+**/dist/
+build/
+**/build/
+build-mingw/
+**/build-mingw/
+win-unpacked/
+**/win-unpacked/
+dist-app/
+**/dist-app/
+*.exe
+*.dll
+*.pdb
+*.obj
+*.o
+*.a
+*.lib
+*.ilk
+*.exp
+*.blockmap
+latest.yml
+
+# Temporales y archivos del sistema
+*.log
+*.tmp
+*.cache
+CONERR$
+Thumbs.db
+Desktop.ini
+.DS_Store

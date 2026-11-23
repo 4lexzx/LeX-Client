@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LEX CLIENT</title>
+    <style>
+      /* Fallback theme varíables antes de que Tailwind genere, para evitar flash de colores incorrectos. */
+      html, body { background: #101116; color: #FFFFFF; }
+      :root {
+        --bg-primary: #101116;
+        --bg-secondary: #181A22;
+        --surface: #20232D;
+        --surface-2: #28303D;
+        --accent: #00C8E8;
+        --text: #FFFFFF;
+        --text-secondary: #A5A5C5;
+        --border: #2B3142;
+      }
+      .material-symbols-outlined { font-family: 'Material Symbols Outlined'; font-weight: normal; font-style: normal; font-size: 1.4em; line-height: 1; letter-spacing: normal; text-transform: none; }
+    </style>
+  </head>
+  <body class="bg-surface-0 text-white min-h-screen">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "@lex/module-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "echo \"(module-sdk: tipos + registro, sin build)\""
+  },
+  "devDependencies": {
+    "@lex/shared": "*",
+    "@types/node": "^24",
+    "typescript": "^5.6"
+  }
+}
