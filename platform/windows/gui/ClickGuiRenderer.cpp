@@ -8,6 +8,7 @@
 
 #include "core/module/Category.h"
 #include "core/util/Math.h"
+#include "platform/windows/gui/IconAtlas.h"
 #include "platform/windows/gui/SettingEditor.h"
 #include "platform/windows/gui/VectorIcons.h"
 
@@ -36,6 +37,20 @@ const TabDefinition kTabs[] = {
     {core::gui::ClickGuiModel::Tab::Favorites, "Favoritos", "icon.star"},
 };
 
+// Usa el PNG embebido cuando el backend ya subio las texturas; si no, cae al
+// icono vectorial (por ejemplo en tests headless sin dispositivo GPU).
+void drawIconOrVector(ImDrawList* list, std::string_view iconId,
+                      const ImVec2& minimum, const ImVec2& maximum,
+                      ImU32 color, float thickness) {
+  const ImTextureID texture = IconAtlas::instance().texture(iconId);
+  if (texture != 0) {
+    list->AddImage(texture, minimum, maximum, ImVec2(0.0f, 0.0f),
+                   ImVec2(1.0f, 1.0f), color);
+    return;
+  }
+  drawIcon(list, iconId, minimum, maximum, color, thickness);
+}
+
 void iconButton(const char* id, const char* iconId, ImU32 color,
                 const ImVec2& size) {
   const ImVec2 position = ImGui::GetCursorScreenPos();
@@ -48,7 +63,7 @@ void iconButton(const char* id, const char* iconId, ImU32 color,
                             ImVec4(color >> 24 & 0xFF, 0, 0, 1.0f)),
                         6.0f);
   }
-  drawIcon(list, iconId, ImVec2(position.x + 5.0f, position.y + 5.0f),
+  drawIconOrVector(list, iconId, ImVec2(position.x + 5.0f, position.y + 5.0f),
            ImVec2(position.x + size.x - 5.0f, position.y + size.y - 5.0f),
            hovered ? IM_COL32_WHITE : color, 1.8f);
 }
@@ -85,7 +100,7 @@ void sidebar(core::gui::ClickGuiModel& model, ImU32 accent,
       list->AddRectFilled(position, position + size,
                           ImGui::ColorConvertFloat4ToU32(panelColor), 8.0f);
     }
-    drawIcon(list, definition.icon,
+    drawIconOrVector(list, definition.icon,
              ImVec2(position.x + 12.0f, position.y + 11.0f),
              ImVec2(position.x + 31.0f, position.y + 31.0f),
              active ? IM_COL32_WHITE : accent, 1.8f);
@@ -133,8 +148,9 @@ void moduleCard(core::gui::ClickGuiModel& model, core::module::Module* module,
   const ImVec2 iconMax(iconMin.x + 44.0f, iconMin.y + 44.0f);
   list->AddRectFilled(iconMin, iconMax,
                       (accent & 0x00FFFFFF) | 0x33000000, 9.0f);
-  drawIcon(list, module->iconId(), ImVec2(iconMin.x + 7.0f, iconMin.y + 7.0f),
-           ImVec2(iconMax.x - 7.0f, iconMax.y - 7.0f), accent, 1.9f);
+  drawIconOrVector(list, module->iconId(),
+                   ImVec2(iconMin.x + 7.0f, iconMin.y + 7.0f),
+                              ImVec2(iconMax.x - 7.0f, iconMax.y - 7.0f), accent, 1.9f);
 
   ImGui::SetCursorPos(ImVec2(position.x - ImGui::GetWindowPos().x + 66.0f,
                              position.y - ImGui::GetWindowPos().y + 12.0f));
@@ -240,7 +256,7 @@ void themePanel(core::gui::ClickGuiModel& model, ImU32 accent,
   }
   ImGui::Checkbox("Modo oscuro", &theme.darkMode);
   ImGui::SliderFloat("Opacidad", &theme.opacity, 0.35f, 1.0f, "%.2f");
-  ImGui::Checkbox("Desenfocado de fondo (simulado)", &theme.blur);
+  ImGui::Checkbox("Oscurecer fondo", &theme.dimBackground);
   ImGui::Checkbox("Animaciones", &theme.animations);
   ImGui::SliderFloat("Velocidad de animacion", &theme.animationSpeed, 2.0f,
                      30.0f, "%.1f");
@@ -282,7 +298,8 @@ void ClickGuiRenderer::draw(core::gui::ClickGuiModel& model,
   const float open = core::util::clamp(model.openAmount(), 0.0f, 1.0f);
   const ImU32 accent = toImU32(theme.accent);
 
-  if (theme.blur && open > 0.01f) {
+  // No es motion blur ni post-procesado: solo un rectangulo alpha.
+  if (theme.dimBackground && open > 0.01f) {
     ImGui::GetForegroundDrawList()->AddRectFilled(
         ImVec2(0.0f, 0.0f), io.DisplaySize,
         ImGui::ColorConvertFloat4ToU32(ImVec4(0.0f, 0.0f, 0.0f, 0.32f * open)));

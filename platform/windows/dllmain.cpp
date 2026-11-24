@@ -11,11 +11,13 @@
 #include "core/module/ModuleManager.h"
 #include "core/util/Logger.h"
 #include "platform/windows/WindowsPlatform.h"
+#include "platform/windows/gui/IconAtlas.h"
 #include "platform/windows/gui/ImGuiLayer.h"
 #include "platform/windows/hooks/DxgiHook.h"
 
 namespace {
 
+HMODULE g_module = nullptr;
 lex::platform::windows::WindowsPlatform g_platform;
 lex::core::ClientContext g_context;
 lex::core::gui::ClickGuiModel g_clickGui(
@@ -44,6 +46,10 @@ extern "C" LEX_API bool lexInitialize(const char* configDirectory,
       (profile != nullptr && *profile != '\0') ? profile : "default";
 
   g_context.initialize(g_platform, path, selectedProfile);
+
+  auto& icons = lex::platform::windows::gui::IconAtlas::instance();
+  icons.setModule(g_module);
+  icons.loadFromResources();
 
   nlohmann::json& root = g_context.config().root();
   if (root.is_object() && root.contains("clickgui")) {
@@ -100,7 +106,14 @@ extern "C" LEX_API const char* lexVersion() { return "0.2.0"; }
 
 extern "C" LEX_API float lexFps() { return g_platform.fps(); }
 
+extern "C" LEX_API int lexIconCount() {
+  return lex::platform::windows::gui::IconAtlas::instance().loadedCount();
+}
+
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
-  if (reason == DLL_PROCESS_ATTACH) DisableThreadLibraryCalls(module);
+  if (reason == DLL_PROCESS_ATTACH) {
+    g_module = module;
+    DisableThreadLibraryCalls(module);
+  }
   return TRUE;
 }

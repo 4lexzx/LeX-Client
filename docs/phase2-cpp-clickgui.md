@@ -8,9 +8,11 @@ Estado: implementada y verificada. Rama: `cpp-client`.
   signature scanning ni offsets del juego.
 - Backend ImGui para **D3D11 y D3D12**, con deteccion automatica del backend
   segun el dispositivo del swapchain.
-- ClickGUI funcional: categorias, tarjetas, iconos vectoriales, toggles,
+- ClickGUI funcional: categorias, tarjetas, iconos propios embebidos, toggles,
   busqueda, favoritos, panel de ajustes por tipo de Setting, tooltips, tema,
   animaciones y atajo RShift.
+- **Sin motion blur ni ningun post-procesado de blur.** El fondo se oscurece
+  con un rectangulo alpha (`dimBackground`); se puede desactivar en Ajustes.
 
 `core/` sigue sin incluir Windows.h, DirectX ni ImGui.
 
@@ -48,7 +50,10 @@ cualquier interface usada por el juego. El log de instalacion lo confirma.
 - `platform/windows/hooks/HookSink.h` — interfaz entre el hook y el render.
 - `platform/windows/hooks/VtableHook.{h,cpp}` — swap de entrada de vtable con `VirtualProtect` (no parchea codigo).
 - `platform/windows/hooks/DxgiHook.{h,cpp}` — device/swapchain dummy para obtener la vtable compartida; detours de Present y ResizeBuffers.
-- `platform/windows/gui/VectorIcons.{h,cpp}` — ~15 iconos lineales propios dibujados con `ImDrawList` (categorias, busqueda, estrella, engranaje, reset, close, HUD, visual, crosshair...).
+- `platform/windows/gui/VectorIcons.{h,cpp}` — iconos vectoriales de respaldo dibujados con `ImDrawList` (se usan en tests headless sin GPU).
+- `platform/windows/gui/IconAtlas.{h,cpp}` — carga los 28 iconos embebidos y los sube a GPU en DX11/DX12.
+- `platform/windows/resources/{IconResource.h,icons.rc.in}` — IDs RCDATA y plantilla del recurso.
+- `scripts/make-icons.mjs` — genera 28 iconos lineales originales en 32/64 PNG, RGBA embebido y `assets/icons/preview.png`. No copia assets de otros clientes.
 - `platform/windows/gui/SettingEditor.{h,cpp}` — `SettingVisitor` que dibuja bool/int/float/color/enum/keybind con ImGui.
 - `platform/windows/gui/ClickGuiRenderer.{h,cpp}` — sidebar, tarjetas, interruptor, gear, favoritos, busqueda, panel de ajustes, panel de tema, tooltips, fade/slide.
 - `platform/windows/gui/ImGuiLayer.{h,cpp}` — init/shutdown ImGui, WndProc forwarding, deteccion DX11/DX12, captura de teclas, cursor, render y restauracion de render targets.
@@ -56,7 +61,7 @@ cualquier interface usada por el juego. El log de instalacion lo confirma.
 ### Modificados
 - `CMakeLists.txt` — ImGui 1.91.9 por FetchContent con hash; target `lex-imgui`.
 - `core/CMakeLists.txt`, `platform/windows/CMakeLists.txt`, `tests/CMakeLists.txt`.
-- `platform/windows/dllmain.cpp` — arranca/para el hook, guarda el modelo en `config/root["clickgui"]`, exports nuevos: `lexToggleGui`, `lexGuiOpen`, `lexHookPresentCalls`; version 0.2.0.
+- `platform/windows/dllmain.cpp` — arranca/para el hook, carga los iconos, guarda el modelo en `config/root["clickgui"]`, exports nuevos: `lexToggleGui`, `lexGuiOpen`, `lexHookPresentCalls`, `lexIconCount`; version 0.2.0.
 
 ### Tests y docs
 - `tests/hook_tests_main.cpp` — 18 comprobaciones: render headless del ClickGUI, intercepcion en dos swapchains, ResizeBuffers, restauracion tras shutdown.
@@ -88,12 +93,14 @@ Librerias del sistema: `user32`, `dwmapi`, `d3d11`, `d3d12`, `d3dcompiler`, `dxg
 1. **Sin prueba dentro de Minecraft Bedrock.** El hook y el render se validan
    con swapchains propias. La inyeccion y el comportamiento real in-game son
    Fase 7 (launcher/injector). No afirmo que ya funcione dentro del juego.
-2. **Blur:** se implementa un oscurecido del fondo con alpha (no un Gaussian
-   blur real). Un blur real requiere un post-procesado del backbuffer anterior
-   a ImGui; se puede hacer en Fase 5 si quieres.
-3. **Iconos:** en esta fase son vectoriales (linea, propios, escalables) y no
-   texturas PNG embebidas. Los assets PNG/RCDATA entran en Fase 5. Dime si los
-   quieres ya en Fase 2 y los añado entonces.
+2. **Blur:** NO se añade motion blur ni post-procesado de blur. Solo existe la
+   opcion "Oscurecer fondo" (`dimBackground`), un rectangulo alpha.
+3. **Iconos:** 28 iconos originales generados por `scripts/make-icons.mjs`
+   (linea blanca sobre transparente), guardados como PNG 32/64 en `assets/icons/`
+   y embebidos como RCDATA en la DLL. Se suben como texturas ImGui en DX11 y
+   DX12; si no hay GPU (tests headless) se cae a los iconos vectoriales.
+   `assets/icons/preview.png` muestra la serie completa.
+   Regenerar: `node scripts/make-icons.mjs` (Node solo en desarrollo, no en build).
 4. **D3D12:** code path implementado y compilado, pero no validado en una
    swapchain D3D12 real aqui. El detector se basa en `GetDevice` + QI.
 5. **Cuadricula/scroll del HUD editor** y las tarjetas con muchos modulos

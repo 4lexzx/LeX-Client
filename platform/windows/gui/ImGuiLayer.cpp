@@ -12,6 +12,7 @@
 
 #include "core/util/Logger.h"
 #include "platform/windows/gui/ClickGuiRenderer.h"
+#include "platform/windows/gui/IconAtlas.h"
 
 using lex::core::util::Logger;
 #include "platform/windows/gui/SettingEditor.h"
@@ -110,6 +111,7 @@ bool ImGuiLayer::initializeDx11(IDXGISwapChain* swapChain) {
 
   d3d11Device_ = device;
   d3d11Context_ = context;
+  IconAtlas::instance().initializeDX11(device);
   originalWndProc_ = reinterpret_cast<WNDPROC>(
       SetWindowLongPtrW(window_, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&wndProc)));
   wndProcHooked_ = originalWndProc_ != nullptr;
@@ -136,7 +138,8 @@ bool ImGuiLayer::initializeDx12(IDXGISwapChain* swapChain) {
 
   D3D12_DESCRIPTOR_HEAP_DESC srvDescription{};
   srvDescription.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  srvDescription.NumDescriptors = 1;
+  // 0 = font atlas de ImGui; el resto = iconos embebidos.
+  srvDescription.NumDescriptors = 1 + IconAtlas::kIconCount;
   srvDescription.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
   if (FAILED(device->CreateDescriptorHeap(&srvDescription,
                                           IID_PPV_ARGS(&d3d12SrvHeap_)))) {
@@ -190,6 +193,7 @@ bool ImGuiLayer::initializeDx12(IDXGISwapChain* swapChain) {
                       d3d12SrvHeap_->GetGPUDescriptorHandleForHeapStart());
 
   d3d12Device_ = device;
+  IconAtlas::instance().initializeDX12(device, d3d12SrvHeap_, 1, d3d12Queue_);
   originalWndProc_ = reinterpret_cast<WNDPROC>(
       SetWindowLongPtrW(window_, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&wndProc)));
   wndProcHooked_ = originalWndProc_ != nullptr;
@@ -356,6 +360,7 @@ LRESULT CALLBACK ImGuiLayer::wndProc(HWND window, UINT message, WPARAM wParam,
 }
 
 void ImGuiLayer::shutdown() {
+  IconAtlas::instance().shutdown();
   if (!initialized_ && backend_ == Backend::None) return;
 
   if (wndProcHooked_ && window_ != nullptr && originalWndProc_ != nullptr) {

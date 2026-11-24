@@ -70,6 +70,18 @@ target_include_directories(lex-imgui PUBLIC
   ${imgui_SOURCE_DIR}/backends
 )
 
+enable_language(RC)
+
+# Iconos propios: los PNG/RGBA se generan con scripts/make-icons.mjs y se
+# empaquetan como RCDATA dentro de la DLL.
+set(LEX_ICON_DIR "${CMAKE_SOURCE_DIR}/assets/icons")
+file(TO_CMAKE_PATH "${LEX_ICON_DIR}" LEX_ICON_DIR)
+configure_file(
+  "${CMAKE_SOURCE_DIR}/platform/windows/resources/icons.rc.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/icons.rc"
+  @ONLY
+)
+
 enable_testing()
 
 add_subdirectory(core)
@@ -80,7 +92,13 @@ add_subdirectory(tests)
 # ---------------------------------------------------------------------------
 # Salida de la Fase 1: LeXClient.dll (aun sin hooks; expone el ciclo de vida).
 # ---------------------------------------------------------------------------
-add_library(LeXClient SHARED platform/windows/dllmain.cpp)
+add_library(LeXClient SHARED
+  platform/windows/dllmain.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/icons.rc
+)
+target_include_directories(LeXClient PRIVATE
+  "${CMAKE_SOURCE_DIR}/platform/windows/resources"
+)
 target_compile_definitions(LeXClient PRIVATE LEX_BUILD_DLL)
 target_link_libraries(LeXClient PRIVATE lex-core lex-modules-objects lex-platform-windows)
 set_target_properties(LeXClient PROPERTIES OUTPUT_NAME "LeXClient" PREFIX "")

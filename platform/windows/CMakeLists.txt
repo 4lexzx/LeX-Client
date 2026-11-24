@@ -9,6 +9,9 @@ add_library(lex-platform-windows STATIC
   hooks/DxgiHook.cpp
   gui/VectorIcons.h
   gui/VectorIcons.cpp
+  gui/IconAtlas.h
+  gui/IconAtlas.cpp
+  resources/IconResource.h
   gui/SettingEditor.h
   gui/SettingEditor.cpp
   gui/ClickGuiRenderer.h

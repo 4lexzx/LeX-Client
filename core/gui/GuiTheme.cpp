@@ -8,7 +8,7 @@ nlohmann::json GuiTheme::toJson() const {
   return nlohmann::json{{"accent", accent.toArgb()},
                         {"darkMode", darkMode},
                         {"opacity", opacity},
-                        {"blur", blur},
+                        {"dimBackground", dimBackground},
                         {"animations", animations},
                         {"animationSpeed", animationSpeed},
                         {"menuKey", menuKey.toJson()}};
@@ -23,7 +23,8 @@ void GuiTheme::fromJson(const nlohmann::json& value) {
     }
     darkMode = value.value("darkMode", darkMode);
     opacity = value.value("opacity", opacity);
-    blur = value.value("blur", blur);
+    // Compatibilidad con perfiles de la Fase 2 que guardaron "blur".
+    dimBackground = value.value("dimBackground", value.value("blur", dimBackground));
     animations = value.value("animations", animations);
     animationSpeed = value.value("animationSpeed", animationSpeed);
     if (value.contains("menuKey")) menuKey.fromJson(value["menuKey"]);
