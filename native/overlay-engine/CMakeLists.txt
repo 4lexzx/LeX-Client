@@ -21,13 +21,14 @@ endif()
 
 add_definitions(-DWIN32 -D_WIN32_WINNT=0x0A00 -DNTDDI_VERSION=0x0A000006 -DNOMINMAX -DWIN32_LEAN_AND_MEAN)
 
-set(LEX_LIBS user32 gdi32 kernel32 advapi32 shell32 d2d1 dwrite dwmapi)
+set(LEX_LIBS user32 gdi32 kernel32 advapi32 shell32 d2d1 dwrite dwmapi msimg32)
 
 add_executable(lex-overlay-engine
   src/main.cpp
   src/engine.cpp
   src/hooks.cpp
   src/bridge.cpp
+  src/inject.cpp
 )
 target_link_libraries(lex-overlay-engine PRIVATE ${LEX_LIBS})
 
@@ -36,5 +37,6 @@ add_executable(lex-overlay-unit-tests
   src/engine.cpp
   src/hooks.cpp
   src/bridge.cpp
+  src/inject.cpp
 )
-target_link_libraries(lex-overlay-unit-tests PRIVATE user32 gdi32 kernel32 advapi32)
+target_link_libraries(lex-overlay-unit-tests PRIVATE user32 gdi32 kernel32 advapi32 msimg32)

@@ -1,17 +1,31 @@
-import type { Screen } from '../stores/appStore';
 import { UiIcon, type IconName } from './InterfaceIcons';
 
-export function NavItem({ active, label, icon, onClick }: { active: boolean; label: string; icon?: IconName; onClick: () => void }) {
-  void (null as unknown as Screen);
+export function NavItem({
+  active,
+  label,
+  icon,
+  hint,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  icon?: IconName;
+  hint?: string;
+  onClick: () => void;
+}) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-        active ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]'
-      }`}
+      aria-current={active ? 'page' : undefined}
+      className={`lex-nav-item ${active ? 'is-active' : ''}`}
     >
-      <span className="w-5 text-center flex justify-center">{icon && <UiIcon name={icon} size={17} />}</span>
-      <span>{label}</span>
+      <span className="lex-nav-indicator" />
+      <span className="lex-nav-icon">{icon && <UiIcon name={icon} size={17} />}</span>
+      <span className="lex-nav-text">
+        <span className="lex-nav-label">{label}</span>
+        {hint && <span className="lex-nav-hint">{hint}</span>}
+      </span>
     </button>
   );
 }

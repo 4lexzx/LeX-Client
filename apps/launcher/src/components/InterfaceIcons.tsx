@@ -6,7 +6,8 @@ import React from 'react';
 export type IconName =
   | 'search' | 'star' | 'grid' | 'list' | 'gear' | 'close' | 'filter'
   | 'chevron' | 'spark' | 'copy' | 'check' | 'info' | 'home' | 'box'
-  | 'all' | 'hud' | 'pvp' | 'visual' | 'performance' | 'utility' | 'cosmetics';
+  | 'all' | 'hud' | 'pvp' | 'visual' | 'performance' | 'utility' | 'cosmetics'
+  | 'play' | 'shield' | 'pulse' | 'move' | 'keyboard' | 'layers' | 'clock' | 'target' | 'arrow' | 'wrench' | 'folder';
 
 const stroke = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'square' as const, strokeLinejoin: 'miter' as const };
 
@@ -59,6 +60,28 @@ function shape(name: IconName): React.ReactNode {
       return <path d="M13.8 2.2a4.5 4.5 0 0 0-5.7 5.8L3 13.1 4.9 15l5.1-5.1a4.5 4.5 0 0 0 5.8-5.7l-2.6 2.6-2.3-.5-.5-2.3z" {...stroke} />;
     case 'cosmetics':
       return <><path d="M8 1.5 L14 6 L11.7 13 H4.3 L2 6 z" {...stroke} /><path d="M2 6h12M5.5 6 L8 13 10.5 6" {...stroke} opacity="0.7" /></>;
+    case 'play':
+      return <><rect x="1.8" y="1.8" width="12.4" height="12.4" rx="3" {...stroke} /><path d="M6.4 5.2 L11 8 L6.4 10.8 Z" fill="currentColor" /></>;
+    case 'shield':
+      return <><path d="M8 1.8 L13.2 4 V8.2 C13.2 11.3 11 13.6 8 14.3 C5 13.6 2.8 11.3 2.8 8.2 V4 Z" {...stroke} /><path d="M5.5 8 L7.2 9.8 L10.8 6.2" {...stroke} /></>;
+    case 'pulse':
+      return <><path d="M1.5 8 H4.5 L6.5 3.5 L9 12.5 L11 7 L14.5 7" {...stroke} /></>;
+    case 'move':
+      return <><path d="M8 1.8 V14.2 M1.8 8 H14.2 M8 1.8 L6 4 M8 1.8 L10 4 M8 14.2 L6 12 M8 14.2 L10 12 M1.8 8 L4 6 M1.8 8 L4 10 M14.2 8 L12 6 M14.2 8 L12 10" {...stroke} /></>;
+    case 'keyboard':
+      return <><rect x="1.5" y="4" width="13" height="8" rx="1.5" {...stroke} /><path d="M4 6.5h1M7 6.5h1M10 6.5h1M4 9h7" {...stroke} /></>;
+    case 'layers':
+      return <><path d="M8 1.8 L14.2 5 L8 8.2 L1.8 5 Z" {...stroke} /><path d="M1.8 8.5 L8 11.7 L14.2 8.5 M1.8 12 L8 15.2 L14.2 12" {...stroke} opacity="0.65" /></>;
+    case 'clock':
+      return <><circle cx="8" cy="8" r="6.2" {...stroke} /><path d="M8 4.6 V8 L10.4 9.5" {...stroke} /></>;
+    case 'target':
+      return <><circle cx="8" cy="8" r="6" {...stroke} /><circle cx="8" cy="8" r="2.4" {...stroke} /><path d="M8 0.8V3 M8 13V15.2 M0.8 8H3 M13 8H15.2" {...stroke} opacity="0.65" /></>;
+    case 'arrow':
+      return <><path d="M3 8 H12.5 M9 4.5 L12.5 8 L9 11.5" {...stroke} /></>;
+    case 'wrench':
+      return <path d="M13.4 2.6a3.7 3.7 0 0 0-4.8 4.7L3 12.9 4.7 14.6l5.6-5.6a3.7 3.7 0 0 0 4.7-4.8l-2.4 2.4-2.1-.4-.4-2.1z" {...stroke} />;
+    case 'folder':
+      return <><path d="M1.8 4.2h4.4l1.4 1.8h6.6v7.8H1.8z" {...stroke} /><path d="M1.8 7.8h12.4" {...stroke} opacity="0.6" /></>;
     default:
       return null;
   }

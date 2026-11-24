@@ -6,61 +6,52 @@
 export const MODULES_CATALOG = [
   // ----- HUD -----
   {
-    id: 'hud-fps', name: 'FPS Counter', description: 'Contador de frames por segundo. Fuente: navegador del propio overlay (fuente principal: la ventana externa D2D del motor de overlays). En alternativa: hardware native vía última columna del shader (pending adapter).', category: 'hud', dataSource: 'external-overlay', overlayRenderer: 'hud-fps',
+    id: 'hud-fps', name: 'FPS Counter', description: 'FPS reales del juego: contados en IDXGISwapChain::Present por el puente inyectado cada 500 ms. Sin puente muestra OV (solo overlay).', category: 'hud', dataSource: 'injected-present', overlayRenderer: 'hud-fps',
   },
   {
-    id: 'hud-cps', name: 'CPS Counter', description: 'Clicks por segundo (clics del ratón). Capturación mediante low-level mouse hooks; sin bloquear el ratón.', category: 'hud', dataSource: 'external-overlay', overlayRenderer: 'hud-cps',
+    id: 'hud-cps', name: 'CPS Counter', description: 'CPS exactos 1:1: cada clic físico cuenta 1, con ventanas separadas de 1000 ms para izquierdo/derecho (patrón Flarial).', category: 'hud', dataSource: 'local-hook', overlayRenderer: 'hud-cps',
   },
   {
-    id: 'hud-keystrokes', name: 'Keystrokes', description: 'Teclas presionadas/soltones en tiempo real (encerradas en una ruta de streams).', category: 'hud', dataSource: 'external-overlay', overlayRenderer: 'hud-keystrokes',
+    id: 'hud-keystrokes', name: 'Keystrokes', description: 'W/A/S/D, SPACE y clics LMB/RMB en vivo, sin SHIFT ni CTRL. Tamaño, color, opacidad y fondo configurables por módulo.', category: 'hud', dataSource: 'local-hook', overlayRenderer: 'hud-keystrokes',
+  },
+  {
+    id: 'hud-armor', name: 'Armor Status', description: 'Iconos de armadura y durabilidad desde el bridge local armor.json. Sin dato muestra ranuras vacías, nunca porcentajes falsos.', category: 'hud', dataSource: 'external-bridge', overlayRenderer: 'hud-armor',
   },
   {
     id: 'hud-clock', name: 'Clock', description: 'Reloj de pared tiempo real, configurable formato 24h.', category: 'hud', dataSource: 'external-overlay', overlayRenderer: 'hud-clock',
   },
   {
-    id: 'hud-ping', name: 'Ping Display', description: 'Ping de servidor. Fuente: adaptador Script API (requiere respuesta de servidor; pendiente Fase 5).', category: 'hud', dataSource: 'reserved',
-  },
-  {
-    id: 'hud-memory', name: 'Memory Display', description: 'RAM y uso de juego. Fuente: adaptador nativo (memoria del proceso MCBE, adapter v1).', category: 'hud', dataSource: 'game-memory-v1', requiresMinVersion: '1.21.120.2',
-  },
-  {
-    id: 'hud-direction', name: 'Direction HUD', description: 'Dirección del jugador y y subconjunto (N/S/E/W). Fuente: adaptador Script API (perodo de ejecución ServerLoop tick; pendiente Fase 5).', category: 'hud', dataSource: 'reserved',
+    id: 'hud-memory', name: 'Memory Display', description: 'Uso de RAM del sistema en tiempo real, medido por el overlay externo (sin leer memoria del juego).', category: 'hud', dataSource: 'external-overlay', overlayRenderer: 'hud-memory',
   },
   // ----- VISUAL -----
   {
-    id: 'visual-crosshair', name: 'Custom Crosshair', description: 'Crosshair huidor — próspera al recorrer distintos estilos, tamaños y colores (resources: formato personalizado del motor D2D).', category: 'visual', dataSource: 'external-overlay', overlayRenderer: 'custom-crosshair',
+    id: 'visual-crosshair', name: 'Custom Crosshair', description: '24 presets de mira dibujados por el overlay externo. Tamaño, color, opacidad y fondo configurables en sus ajustes.', category: 'visual', dataSource: 'external-overlay', overlayRenderer: 'custom-crosshair',
   },
   {
-    id: 'visual-motionblur', name: 'Motion Blur', description: 'Blur de movimiento suave (engine de overlays).', category: 'visual', dataSource: 'external-overlay', overlayRenderer: 'visual-motionblur',
+    id: 'visual-motionblur', name: 'Motion Blur', description: 'Blur aplicado por el shader inyectado al framebuffer del juego (D3D11/D3D12). No es un dibujo del overlay.', category: 'visual', dataSource: 'injected-shader', overlayRenderer: 'visual-motionblur',
   },
   {
-    id: 'visual-fog', name: 'Custom Fog', description: 'Fog variables (engine de overlays).', category: 'visual', dataSource: 'external-overlay', overlayRenderer: 'visual-fog',
+    id: 'visual-fog', name: 'Custom Fog', description: 'Niebla personalizada aplicada por el shader inyectado al frame del juego (color y intensidad controlados por LEX).', category: 'visual', dataSource: 'injected-shader', overlayRenderer: 'visual-fog',
   },
   {
-    id: 'visual-colors', name: 'Color Adjustments', description: 'Gamma/saturación/balance (engine de overlays).', category: 'visual', dataSource: 'external-overlay', overlayRenderer: 'visual-colors',
+    id: 'visual-colors', name: 'Color Adjustments', description: 'Saturación de color ajustada por el shader inyectado en el framebuffer del juego.', category: 'visual', dataSource: 'injected-shader', overlayRenderer: 'visual-colors',
   },
   {
-    id: 'visual-zoom', name: 'Zoom', description: 'Zoom de cámara estilo DOTA (engine de overlays).', category: 'visual', dataSource: 'external-overlay', overlayRenderer: 'visual-zoom',
+    id: 'visual-zoom', name: 'Zoom', description: 'Zoom de cámara por escalado UV del frame en el shader inyectado (1.35x), sin tocar archivos del juego.', category: 'visual', dataSource: 'injected-shader', overlayRenderer: 'visual-zoom',
   },
-  // ----- GAMEPLAY -----
+  // ----- COSMETICS (texturas animadas propias, renderizadas por el overlay) -----
   {
-    id: 'game-drift', name: 'Death Counter', description: 'Contador de muertes (adaptador Script API opcional).', category: 'gameplay', dataSource: 'reserved',
-  },
-  {
-    id: 'game-tps', name: 'TPS Counter', description: 'Ticks por segundo del servidor (adaptador Script API; pendiente Fase 5).', category: 'gameplay', dataSource: 'reserved',
+    id: 'cosmetic-dragon-wings', name: 'Dragon Wings', description: 'Alas de dragón animadas: 8 frames de textura propia LEXTEX1 dibujados sobre la ventana del juego (client-side).', category: 'cosmetics', dataSource: 'animated-texture', overlayRenderer: 'cosmetic-dragon-wings',
   },
   {
-    id: 'game-haste', name: 'Speed Display', description: 'Velocidad del jugador (adaptador Script API; pendiente Fase 5).', category: 'gameplay', dataSource: 'reserved',
+    id: 'cosmetic-ember-cape', name: 'Ember Cape', description: 'Capa de brasas animada: 8 frames de textura propia LEXTEX1 dibujados sobre la ventana del juego (client-side).', category: 'cosmetics', dataSource: 'animated-texture', overlayRenderer: 'cosmetic-ember-cape',
   },
   // ----- UTILITIES -----
   {
-    id: 'util-keybinds', name: 'Keybind Manager', description: 'Registro y gestión de atajos de teclado de cliente (llave del overlay). Datos de cliente: management local.', category: 'utilities', dataSource: 'local-only',
+    id: 'util-keybinds', name: 'Keybind Manager', description: 'F8 abre y cierra el ClickGUI. Dentro del menú todo se controla con clic: pestañas, toggles, búsqueda y movimiento del HUD.', category: 'utilities', dataSource: 'local-only',
   },
   {
     id: 'util-session', name: 'Session Statistics', description: 'Estadísticas de sesión local (tiempo, visitas, etc. — datos de cliente).', category: 'utilities', dataSource: 'local-only',
-  },
-  {
-    id: 'util-screens', name: 'Screenshot Manager', description: 'Toma capturas (pantalla de propagación exportada; sep 2022).', category: 'utilities', dataSource: 'local-only',
   },
 ];
 

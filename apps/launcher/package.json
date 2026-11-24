@@ -9,10 +9,10 @@
   "scripts": {
     "dev": "concurrently \"vite --port 5173 --strictPort\" \"electron .\"",
     "dev:vite": "vite --port 5173 --strictPort",
-    "prebuild": "node ../../scripts/copy-catalog.mjs",
+    "prebuild": "node ../../scripts/make-cosmetic-textures.mjs && node ../../scripts/copy-catalog.mjs && node ../../scripts/copy-cosmetic-assets.mjs",
     "build": "vite build",
     "start": "electron .",
-    "prepackage": "node ../../scripts/copy-catalog.mjs && node ../../scripts/copy-overlay.mjs",
+    "prepackage": "node ../../scripts/make-icon.mjs && node ../../scripts/copy-catalog.mjs && node ../../scripts/copy-overlay.mjs && node ../../scripts/copy-cosmetic-assets.mjs",
     "package": "electron-builder --config electron-builder.yml",
     "test": "node --test",
     "typecheck": "tsc --noEmit"

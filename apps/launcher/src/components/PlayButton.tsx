@@ -33,13 +33,13 @@ export function PlayButton({ installation, disabled = false }: { installation: M
   const locked = !installation || disabled || loading;
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="play-row">
       <Button variant="primary" size="lg" onClick={handlePlay} disabled={locked} aria-label="Jugar a Minecraft">
         {loading ? 'Iniciando…' : 'JUGAR'}
       </Button>
       {error && <Badge variant="error">{error.message}</Badge>}
       {installation && (
-        <span className="text-xs text-[var(--text-muted)] flex items-center gap-1.5">
+        <span className="play-meta">
           <span className={`status-dot ${installation.isPreview ? 'warning' : 'ok'}`} />
           {installation.displayName} — {installation.version} ({installation.edition})
         </span>

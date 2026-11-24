@@ -1,11 +1,12 @@
-import { Brand } from '@lex/ui-components';
-import { NavItem } from './NavItem';
+import React from 'react';
+import logoUrl from '../../assets/lex-logo.png';
+import { UiIcon } from './InterfaceIcons';
 import { useApp } from '../stores/appStore';
 import type { Screen } from '../stores/appStore';
 import type { IconName } from './InterfaceIcons';
 
 const ITEMS: Array<{ id: Screen; label: string; icon: IconName }> = [
-  { id: 'home', label: 'Inicio', icon: 'home' },
+  { id: 'home', label: 'Inicio', icon: 'play' },
   { id: 'versions', label: 'Versiones', icon: 'box' },
   { id: 'mods', label: 'Módulos', icon: 'grid' },
   { id: 'cosmetics', label: 'Cosméticos', icon: 'cosmetics' },
@@ -14,21 +15,43 @@ const ITEMS: Array<{ id: Screen; label: string; icon: IconName }> = [
 
 export function Sidebar({ current, onNav }: { current: Screen; onNav: (s: Screen) => void }) {
   const { status } = useApp();
+  const [logo, setLogo] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    window.lex?.ipc?.logoGet?.().then((r) => { if (r?.dataUrl) setLogo(r.dataUrl); }).catch(() => {});
+    const off = window.lex?.on?.('lex:logo-updated', () => {
+      window.lex?.ipc?.logoGet?.().then((r) => { if (r?.dataUrl) setLogo(r.dataUrl); }).catch(() => {});
+    });
+    return () => off?.();
+  }, []);
+
   return (
-    <aside className="w-56 flex-none flex flex-col p-3 border-r border-[var(--border)] bg-[var(--bg-secondary)]">
-      <div className="pt-6 pb-4 px-2">
-        <Brand size="sm" />
+    <aside className="lex-sidebar">
+      <div className="lex-rail-logo" title="LEX CLIENT">
+        <img src={logo ?? logoUrl} alt="LEX CLIENT" />
       </div>
-      <nav className="flex-1 space-y-1">
+
+      <nav className="lex-nav" aria-label="Navegación principal">
         {ITEMS.map((item) => (
-          <NavItem key={item.id} active={current === item.id} label={item.label} icon={item.icon} onClick={() => onNav(item.id)} />
+          <button
+            key={item.id}
+            type="button"
+            title={item.label}
+            aria-label={item.label}
+            className={`lex-nav-item${current === item.id ? ' is-active' : ''}`}
+            onClick={() => onNav(item.id)}
+          >
+            <span className="lex-nav-icon"><UiIcon name={item.icon} size={20} /></span>
+          </button>
         ))}
       </nav>
-      {status && (
-        <div className="mt-4 mx-2 px-3 py-2 rounded-lg bg-[var(--surface)] text-[11px] text-[var(--text-secondary)]">
-          {status.text}
+
+      <div className="lex-side-foot">
+        <div className={`lex-rail-status tone-${status?.tone ?? 'ok'}`} title={status?.text ?? 'Sistema listo'}>
+          <UiIcon name="pulse" size={16} />
         </div>
-      )}
+        <div className="lex-rail-key" title="F8 abre el menú en el juego">F8</div>
+      </div>
     </aside>
   );
 }

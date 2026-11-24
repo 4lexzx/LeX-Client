@@ -5,7 +5,7 @@
 
 import React from 'react';
 import type { ModuleMeta } from '@lex/shared';
-import { ModuleArt } from '../components/ModuleArt';
+import { ModuleIcon } from '../components/ModuleArt';
 import { UiIcon, type IconName } from '../components/InterfaceIcons';
 
 type UiCategory = 'all' | 'hud' | 'pvp' | 'visual' | 'performance' | 'utility' | 'cosmetics';
@@ -72,34 +72,34 @@ const SOURCE_LABELS: Record<ModuleMeta['dataSource'], string> = {
 };
 
 const SOURCE_NOTES: Record<ModuleMeta['dataSource'], string> = {
-  'external-overlay': 'Los datos los emite el overlay nativo (ventana D2D externa). No se inyecta nada en el juego.',
+  'external-overlay': 'Los datos los emite el overlay nativo (ventana GDI externa sobre el juego). No se inyecta nada en Minecraft.',
   'game-memory-v1': 'Adaptador de memoria del juego v1. Pendiente de validación con versiones reales (Fase 5).',
   'game-memory-v2': 'Adaptador de memoria del juego v2 (planificado).',
   'script-api-v1': 'Sólo Script API. Requiere respuesta del servidor; pendiente de Fase 5.',
-  'local-only': 'Datos del propio cliente/overlay: reloj, atajos, capturas y estadísticas locales.',
+  'local-only': 'Datos del propio cliente/overlay: reloj, sesión y atajos fijos del menú.',
   reserved: 'Esperando fuente nativa fiable. El módulo no inventa datos: se activará cuando exista un adaptador validado.',
 };
 
 // Textos cortos para la tarjeta; la descripción completa del catálogo se conserva en Opciones.
 const SHORT_DESCRIPTIONS: Record<string, string> = {
-  'hud-fps': 'Contador de frames del overlay en pantalla.',
+  'hud-fps': 'FPS del overlay (no del juego).',
   'hud-cps': 'Clics por segundo con captura de bajo nivel.',
   'hud-keystrokes': 'Teclas W A S D en tiempo real.',
   'hud-clock': 'Reloj de pared con formato 24 h.',
   'hud-ping': 'Latencia del servidor (fuente pendiente).',
-  'hud-memory': 'Uso de RAM del proceso del juego.',
+  'hud-memory': 'Uso de RAM del sistema en tiempo real (overlay).',
   'hud-direction': 'Brújula N / S / E / W del jugador.',
-  'visual-crosshair': 'Mira personalizable con estilos y colores.',
-  'visual-motionblur': 'Desenfoque de movimiento del overlay.',
-  'visual-fog': 'Niebla ajustable del entorno.',
-  'visual-colors': 'Gamma, saturación y balance de color.',
-  'visual-zoom': 'Zoom de cámara estilo lupa.',
+  'visual-crosshair': 'Mira cian dibujada sobre el juego.',
+  'visual-motionblur': 'Reservado: sin acceso al render del juego.',
+  'visual-fog': 'Reservado: sin fuente validada.',
+  'visual-colors': 'Reservado: fuera del overlay externo.',
+  'visual-zoom': 'Reservado: depende del FOV del juego.',
   'game-drift': 'Contador de muertes de la sesión.',
   'game-tps': 'Ticks por segundo del servidor.',
   'game-haste': 'Velocidad de movimiento del jugador.',
-  'util-keybinds': 'Gestiona los atajos del cliente.',
+  'util-keybinds': 'ClickGUI con F8 para abrir; dentro del menú todo se controla con clic.',
   'util-session': 'Estadísticas locales de la sesión.',
-  'util-screens': 'Capturas de pantalla del juego.',
+  'util-screens': 'Reservado: capturas no implementadas.',
 };
 
 const FAVORITES_KEY = 'lex-client:mod-favorites';
@@ -151,7 +151,9 @@ function ModCard({ module: m, index, enabled, favorite, compact, viewCategory, o
       style={{ animationDelay: `${Math.min(index, 18) * 28}ms` }}
     >
       <div className="mod-art">
-        <ModuleArt id={m.id} />
+        <div className="mod-art-aura" aria-hidden="true" />
+        <span className="mod-art-index">{String(index + 1).padStart(2, '0')}</span>
+        <span className="mod-icon-frame"><ModuleIcon id={m.id} /></span>
         {m.dataSource === 'reserved' && !compact && <span className="mod-art-tag">PRÓXIMAMENTE</span>}
         <button
           type="button"
@@ -206,7 +208,7 @@ function ModuleSettingsModal({ module: m, enabled, favorite, onToggle, onFavorit
     <div className="mods-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="mods-modal" data-cat={m.category === 'gameplay' ? 'pvp' : m.category === 'utilities' ? 'utility' : m.category} role="dialog" aria-modal="true" aria-label={`Opciones de ${m.name}`}>
         <div className="mods-modal-head">
-          <div className="mods-modal-thumb"><ModuleArt id={m.id} /></div>
+          <div className="mods-modal-thumb"><ModuleIcon id={m.id} /></div>
           <div>
             <h2>{m.name}</h2>
             <div className="modal-sub">#{m.id} · {SOURCE_LABELS[m.dataSource]}</div>

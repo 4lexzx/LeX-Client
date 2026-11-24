@@ -34,6 +34,15 @@ const check = (name, ok, detail) => {
 };
 
 try {
+  // Normaliza el estado antes de montar la pantalla: el smoke debe ser repetible
+  // aunque una ejecucion anterior dejara dragon-wings activo.
+  const prepared = await evaluate('window.lex.ipc.modulesSetState({id:"cosmetic-dragon-wings", enabled:false})');
+  check('estado inicial de cosmético', prepared?.ok === true);
+
+  // Fuerza un remontaje: si el renderer ya estaba en Cosméticos, su estado
+  // interno seguiria desactualizado tras normalizar modules.json.
+  await evaluate(`(()=>{const b=[...document.querySelectorAll('button')].find(b=>b.textContent?.includes('Inicio')); if(b) b.click(); return true;})()`);
+  await wait(300);
   const clicked = await evaluate(`(()=>{const el=[...document.querySelectorAll('button')].find(b=>b.textContent?.includes('Cosméticos')); if(!el) return false; el.click(); return true;})()`);
   check('navega a Cosméticos', clicked === true);
   await wait(400);
@@ -54,6 +63,15 @@ try {
     check('importa cosméticos reales', String(after).includes('Cosmético de prueba LEX'));
     check('estado de importación', String(after).includes('Importados: 1'));
   }
+
+  const preview = await evaluate(`(()=>{const c=document.querySelector('[data-cosmetic-preview]'); return Boolean(c && c.width > 0 && c.height > 0);})()`);
+  check('preview animado del atlas', preview === true);
+
+  const activated = await evaluate(`(()=>{const b=document.querySelector('[data-cosmetic-activate="dragon-wings"]'); if(!b) return false; b.click(); return true;})()`);
+  check('botón activar cosmético', activated === true);
+  await wait(1400);
+  const state = await evaluate('document.body.innerText');
+  check('cosmético activo en UI', String(state).includes('ACTIVO') && String(state).includes('Desactivar Alas de dragón'));
 } finally {
   ws.close();
 }

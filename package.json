@@ -7,6 +7,7 @@
     "test": "npm run test --workspace=packages/shared && npm run test --workspace=packages/compatibility && npm run test --workspace=apps/launcher",
     "test:all": "node --test packages/shared/tests/*.mjs apps/launcher/tests/*.mjs",
     "build": "npm run build --workspace=apps/launcher",
+    "assets:cosmetics": "node scripts/make-cosmetic-textures.mjs && node scripts/copy-cosmetic-assets.mjs",
     "docs": "node scripts/show-phases.mjs"
   },
   "packageManager": "npm@11.12.1",

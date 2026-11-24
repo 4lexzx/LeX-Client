@@ -19,6 +19,11 @@ contextBridge.exposeInMainWorld('lex', {
     overlaySetState: (state) => invoke('overlay:set-state', state),
     cosmeticsGet: () => invoke('cosmetics:get'),
     cosmeticsSave: (items) => invoke('cosmetics:save', items),
+    cosmeticsPreview: (file) => invoke('cosmetics:preview', file),
+    cosmeticsOpenPack: () => invoke('cosmetics:open-pack'),
+    cosmeticsInstallPack: () => invoke('cosmetics:install-pack'),
+    logoGet: () => invoke('logo:get'),
+    logoPick: () => invoke('logo:pick'),
   },
   on: (event, listener) => {
     const wrapped = (_e, ...args) => listener(...args);

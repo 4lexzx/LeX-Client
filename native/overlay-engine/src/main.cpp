@@ -13,8 +13,15 @@
 
 static BOOL CALLBACK enumMinecraftWindow(HWND hwnd, LPARAM lParam) {
   wchar_t title[512] = {0};
+  wchar_t cls[256] = {0};
   const int len = GetWindowTextW(hwnd, title, 512);
-  if (len > 0 && IsWindowVisible(hwnd) && wcsstr(title, L"Minecraft") != nullptr) {
+  GetClassNameW(hwnd, cls, 256);
+  // Sólo la ventana Bedrock real; un navegador con "Minecraft" en el título
+  // no debe capturar el overlay.
+  const bool bedrock = wcscmp(cls, L"Bedrock") == 0;
+  const bool browser = wcsstr(cls, L"Chrome_WidgetWin") != nullptr;
+  if (len > 0 && IsWindowVisible(hwnd) && bedrock && !browser &&
+      wcsstr(title, L"Minecraft") != nullptr) {
     *reinterpret_cast<HWND*>(lParam) = hwnd;
     return FALSE;
   }
@@ -28,9 +35,7 @@ static HWND findMinecraftWindow() {
 }
 
 int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
-  (void)AllocConsole();
-  (void)SetConsoleTitleA("LEX Client Overlay Engine");
-
+  // Sin consola: el motor corre 100% en segundo plano.
   HANDLE hMutex = CreateMutexW(nullptr, TRUE, L"lex-overlay-engine");
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
     // Ya está corriendo.
@@ -42,12 +47,17 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow) {
   (void)nCmdShow;
 
   HWND hwnd = findMinecraftWindow();
-  if (!hwnd) {
-    fprintf(stderr, "[LEX] no se encontró ventana de Minecraft\n");
-    // No hay juego: salimos con error 1 para el launcher.
-    return 1;
+  // El juego tarda unos segundos en crear su ventana: esperamos en segundo plano.
+  // Espera indefinida: la activación UWP puede tardar mucho (o fallar una vez).
+  // No inyectamos antes de que exista la ventana: hacerlo durante el arranque
+  // DXGI de Bedrock provoca crashes en dxgi.dll. El puente se engancha después,
+  // creando una swapchain propia para derivar la vtable de Present.
+  while (!hwnd) {
+    Sleep(200);
+    hwnd = findMinecraftWindow();
   }
   fprintf(stderr, "[LEX] Minecraft hwnd=%p\n", (void*)hwnd);
+  engine.setGameWindow(hwnd);
 
   // Hooks: teclado (LLM, sin bloquear) y mouse (LLM + CPS, sin bloquear).
   auto hooks = lex::engine::installHooks();

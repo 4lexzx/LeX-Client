@@ -1,5 +1,6 @@
 // LEX CLIENT — Tipos de la API que preload expone a la renderer.
 import type { MinecraftInstallation, ModuleMeta } from '@lex/shared';
+import type { Cosmetic } from '@lex/cosmetics';
 
 declare global {
   interface Window {
@@ -17,8 +18,12 @@ declare global {
         diagnosticsApplyFix(id: string): Promise<{ applied: boolean; id: string; note?: string; url?: string }>;
         updatesCheck(): Promise<{ version: string; notes: string; changed: boolean; launcherVersion?: string }>;
         overlaySetState(state: Record<string, unknown>): Promise<{ ok: boolean }>;
-        cosmeticsGet(): Promise<Array<{ id: string; name: string; type: string; source: string; version?: string }>>;
-        cosmeticsSave(items: Array<{ id: string; name: string; type: string; source: string; version?: string }>): Promise<{ ok: boolean; count: number }>;
+        cosmeticsGet(): Promise<Cosmetic[]>;
+        cosmeticsSave(items: Cosmetic[]): Promise<{ ok: boolean; count: number }>;
+        cosmeticsPreview(file: string): Promise<{ dataUrl: string | null }>;
+        cosmeticsOpenPack(): Promise<{ ok: boolean; error?: string }>;
+        logoGet(): Promise<{ dataUrl: string | null }>;
+        logoPick(): Promise<{ ok: boolean }>;
       };
       on(event: string, listener: (payload?: unknown) => void): () => void;
       auth: {

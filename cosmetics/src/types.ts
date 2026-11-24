@@ -12,11 +12,21 @@ export interface Cosmetic {
   type: CosmeticType;
   /** Número de capas renderizables (para vista 3D). */
   layers?: number;
-  /** Thumbnail URL/path (opcional). */
+  /** Preview: PNG del atlas de frames (para la galería del launcher). */
   preview?: string;
+  /** Atlas animado que consume el overlay nativo (formato LEXTEX1). */
+  atlas?: string;
+  /** true cuando el atlas tiene varios frames. */
+  animated?: boolean;
+  /** Frames horizontales dentro del atlas. */
+  frames?: number;
+  /** Duración de cada frame en milisegundos. */
+  frameMs?: number;
+  /** true cuando el cosmético está activo en el HUD del juego. */
+  active?: boolean;
   /** Estado de visibilidad: private (solo cliente) vs shared (aplicable a otros con el RP). */
   source: CosmeticSource;
-  /** Hash SHA256-ish para validación de import (Fase 7). */
+  /** Hash SHA256-ish para validación de import. */
   hash?: string;
 }
 

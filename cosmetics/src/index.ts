@@ -1,5 +1,6 @@
 // LEX CLIENT — Índice de sistema de cosméticos.
 export * from './types.js';
+export * from './builtin.js';
 export * from './gallery.js';
 export * from './importer.js';
 

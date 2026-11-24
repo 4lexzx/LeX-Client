@@ -1,97 +1,88 @@
-import React from 'react';
-import { Card } from '@lex/ui-components';
+import { UiIcon } from '../components/InterfaceIcons';
 import { PlayButton } from '../components/PlayButton';
-import { DetectionStatus } from '../components/DetectionStatus';
-import { useApp, useAppHelpers } from '../stores/appStore';
+import { useApp, useAppDispatch } from '../stores/appStore';
 import { useDetectOnMount } from '../hooks/useDetectOnMount';
-import { checkUpdates } from '../utils/updater';
-import { runDiagnostics } from '../utils/diagnostics';
+
+const SOCIAL: Array<'star' | 'grid' | 'spark' | 'layers' | 'folder'> = [
+  'star', 'grid', 'spark', 'layers', 'folder',
+];
+
+const NEWS = [
+  { tag: 'CLICKGUI', title: 'Menú F8 rediseñado', desc: 'Tarjetas 3D, iconos grandes y ajustes por módulo.', icon: 'grid' as const },
+  { tag: 'OVERLAY', title: 'HUD sin contorno', desc: 'Keystrokes, armadura y contadores con estilo Flarial.', icon: 'hud' as const },
+  { tag: 'RENDIMIENTO', title: 'FPS reales', desc: 'Puente DX11/DX12 y CPS 1:1 desde el hook global.', icon: 'pulse' as const },
+  { tag: 'SEGURIDAD', title: 'Sin cuentas', desc: 'Sin auth, sin credenciales y sin archivos del juego.', icon: 'shield' as const },
+];
 
 export function Home() {
   const { installations, latest, loading, status } = useApp();
-  const { setStatus } = useAppHelpers();
-  const isLoading = loading.detect;
-
+  const dispatch = useAppDispatch();
   useDetectOnMount();
 
-  async function handleUpdatesStatus() {
-    try {
-      const u = await checkUpdates();
-      if (u.changed) setStatus({ text: `Nueva versión del launcher disponible: ${u.latest}`, tone: 'warning' });
-    } catch {
-      /* no-op */
-    }
-  }
-  React.useEffect(() => {
-    void handleUpdatesStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, latest]);
-
-  async function handleDiagnostics() {
-    try {
-      const r = await runDiagnostics();
-      const bad = r.diagnostics.filter((d) => d.level !== 'ok');
-      setStatus({ text: bad.length ? `${bad.length} problema(s) en diagnóstico` : 'Sin problemas detectados', tone: bad.length ? 'warning' : 'ok' });
-    } catch {
-      setStatus({ text: 'Error al ejecutar diagnóstico', tone: 'error' });
-    }
-  }
+  const isLoading = loading.detect;
+  const version = latest?.version ?? '—';
 
   return (
-    <div className="flex flex-col gap-6 p-8 animate-slideUp">
-      {/* Encabezado */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-[var(--text)]">LEX CLIENT</h1>
-        <p className="text-sm text-[var(--text-secondary)]">Cliente moderno y modular para Minecraft Bedrock Edition en Windows 10/11.</p>
-      </div>
-
-      {/* Estado de detección */}
-      <Card
-        title="Estado de la instalación"
-        subtitle={latest ? `Última versión detectada: ${latest.displayName} ${latest.version}` : ''}
-        action={<DetectionStatus installations={installations} isLoading={isLoading} />}
-      >
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg bg-[var(--bg-secondary)] px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-[var(--text-secondary)]">Instalaciones</span>
-            <span className="text-sm font-semibold">{isLoading ? '…' : installations.length}</span>
-          </div>
-          <div className="rounded-lg bg-[var(--bg-secondary)] px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-[var(--text-secondary)]">Versión estable recomendada</span>
-            <span className="text-sm font-semibold">{isLoading ? '…' : (latest?.version ?? 'Sin detectar')}</span>
-          </div>
-          <div className="rounded-lg bg-[var(--bg-secondary)] px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-[var(--text-secondary)]">Compatibilidad</span>
-            <span className="text-sm font-semibold">{isLoading ? '…' : (installations.every((i) => i.version.startsWith('1.21')) ? 'Cualificable: 1.21+' : 'Pendiente de verificación')}</span>
-          </div>
+    <div className="lx-home animate-slideUp">
+      <header className="lx-topbar">
+        <div className="lx-social">
+          {SOCIAL.map((icon, i) => <span key={i}><UiIcon name={icon} size={15} /></span>)}
         </div>
-      </Card>
+        <div className="lx-toppill"><UiIcon name="pulse" size={13} /> {isLoading ? 'DETECTANDO…' : `${installations.length} instalaciones`}</div>
+        <div className="lx-toppill lx-toppill-accent"><UiIcon name="star" size={13} /> SIN AUTH</div>
+        <div className="lx-topbar-spacer" />
+        <div className="lx-topicon"><UiIcon name="grid" size={17} /><b>3</b></div>
+        <div className="lx-topicon"><UiIcon name="spark" size={17} /><b>2</b></div>
+        <div className="lx-window-dots"><span /><span /></div>
+      </header>
 
-      {/* PLAY */}
-      <Card title="Iniciar Minecraft" subtitle="Lanzar una instalación detectada">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-center py-4">
-            <PlayButton installation={latest ?? installations[0] ?? null} disabled={isLoading} />
+      <div className="lx-content">
+        <section className="lx-hero">
+          <div className="lx-hero-copy">
+            <div className="lx-hero-badge">LEX CLIENT · BEDROCK WINDOWS</div>
+            <h1>Minecraft {version.replace(/^[^-]*-/, '') || '1.20.1'}</h1>
+            <p>
+              El cliente se acopla a tu juego con un overlay externo: F8 abre el menú,
+              el ratón manda y los módulos se ajustan uno por uno. Sin cuentas, sin
+              archivos del juego y sin atajos ocultos.
+            </p>
+            <div className="lx-launch">
+              <PlayButton installation={latest ?? installations[0] ?? null} disabled={isLoading} />
+              <button
+                type="button"
+                className="lx-chip"
+                onClick={() => dispatch({ type: 'set-current', screen: 'mods' })}
+              >
+                <UiIcon name="grid" size={14} /> VER MÓDULOS
+              </button>
+            </div>
+            <div className="lx-status-line"><span className="lx-dot" /> {status?.text ?? 'Sistema listo.'}</div>
           </div>
-        </div>
-      </Card>
 
-      {/* Status actions */}
-      <div className="flex items-center gap-3">
-        <button className="text-xs text-[var(--accent)] underline" onClick={handleDiagnostics}>
-          Ejecutar diagnóstico
-        </button>
-        {status && <span className={`text-xs text-[var(--text-secondary)] ml-auto`}>{status.text}</span>}
+          <aside className="lx-account">
+            <div className="lx-avatar"><UiIcon name="shield" size={54} /></div>
+            <div className="lx-avatar-name">PLAYER</div>
+            <div className="lx-avatar-sub">Minecraft for Windows · local</div>
+            <button type="button" className="lx-account-btn" onClick={() => dispatch({ type: 'set-current', screen: 'settings' })}>
+              ADMINISTRAR
+            </button>
+            <button type="button" className="lx-account-btn lx-account-ghost" onClick={() => dispatch({ type: 'set-current', screen: 'versions' })}>
+              VERSIONES
+            </button>
+          </aside>
+        </section>
+
+        <section className="lx-news">
+          {NEWS.map((n) => (
+            <button key={n.tag} type="button" className="lx-news-card" onClick={() => dispatch({ type: 'set-current', screen: n.tag === 'CLICKGUI' ? 'mods' : 'settings' })}>
+              <span className="lx-news-art"><UiIcon name={n.icon} size={34} /></span>
+              <span className="lx-news-tag">{n.tag}</span>
+              <b>{n.title}</b>
+              <small>{n.desc}</small>
+            </button>
+          ))}
+        </section>
       </div>
-
-      {/* Last news stub — documentado como pendiente */}
-      <Card title="Últimas novedades — LEX CLIENT" subtitle="Ver completo en docs/CHANGELOG.md">
-        <ul className="text-sm text-[var(--text-secondary)] list-disc pl-5 space-y-1">
-          <li>Fase 1: Investigación y arquitectura.</li>
-          <li>Fase 2: Launcher funcional — detección real, navegación real, PLAY real.</li>
-          <li>Próximamente: Fase 3 overlay, Fase 4 módulos, Fase 5 integración.</li>
-        </ul>
-      </Card>
     </div>
   );
 }

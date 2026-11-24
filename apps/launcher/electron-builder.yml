@@ -8,6 +8,8 @@ files:
   - "dist/renderer/**/*"
   - "electron/**/*"
   - "modules/catalog.mjs"
+  - "modules/cosmetics.mjs"
+  - "assets/**/*"
   - "package.json"
   - "!**/node_modules/**"
   - "!**/*.map"
@@ -16,7 +18,7 @@ asar: false
 afterPack: ../../scripts/after-pack.mjs
 compression: maximum
 win:
-  icon: assets/icon.ico
+  icon: assets/icon.png
   signAndEditExecutable: false
   target:
     - nsis

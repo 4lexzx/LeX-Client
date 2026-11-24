@@ -1,4 +1,6 @@
 // LEX CLIENT — Sistema propio de cosméticos: Galería (local de usuario).
+import { withBuiltinCosmetics } from './builtin.js';
+import { dedupeCosmetics } from './importer.js';
 import type { Cosmetic, Gallery } from './types.js';
 
 export const COSMETIC_TYPES = ['local', 'resource-pack', 'import'] as const;
@@ -6,13 +8,9 @@ export const PRIVACY_RULE = 'Cosméticos propios: visibles sólo en LEX CLIENT d
   + 'Cosméticos aplicables por otros: requieren redistribución de resource pack e instalación en el cliente (detalle en cosmetics/README.md).';
 
 export function makeGallery(items: Cosmetic[]): Gallery {
-  const privateCount = items.filter((c) => c.source === 'private').length;
-  return {
-    items,
-    total: items.length,
-    privateCount,
-    sharedCount: items.length - privateCount,
-  };
+  const list = dedupeCosmetics(withBuiltinCosmetics(items));
+  const privateCount = list.filter((c) => c.source === 'private').length;
+  return { items: list, total: list.length, privateCount, sharedCount: list.length - privateCount };
 }
 
 export function findCosmetic(gallery: Gallery, id: string): Cosmetic | null {
