@@ -7,6 +7,7 @@
 
 #include "core/ClientContext.h"
 #include "core/config/ConfigManager.h"
+#include "core/gui/ClickGuiModel.h"
 #include "core/events/EventBus.h"
 #include "core/module/ModuleManager.h"
 #include "core/settings/SettingVisitor.h"
@@ -118,6 +119,53 @@ void testSettings() {
   CHECK(visitor.keybinds == 1);
 }
 
+void testClickGuiModel(module::ModuleManager& manager) {
+  gui::ClickGuiModel model(manager);
+  CHECK(!model.isOpen());
+  CHECK(model.theme().menuKey.key == 0xA1);
+  CHECK(model.theme().menuKey.shift);
+
+  model.toggle();
+  CHECK(model.isOpen());
+  model.update(1.0f);
+  CHECK(model.openAmount() > 0.9f);
+
+  model.setTab(gui::ClickGuiModel::Tab::Hud);
+  CHECK(!model.visibleModules().empty());
+
+  model.setSearch("  PROBE  ");
+  CHECK(model.visibleModules().size() == 1);
+  model.setSearch("no-existe");
+  CHECK(model.visibleModules().empty());
+  model.setSearch("");
+
+  model.toggleFavorite("ProbeModule");
+  CHECK(model.isFavorite("ProbeModule"));
+  model.setTab(gui::ClickGuiModel::Tab::Favorites);
+  CHECK(model.visibleModules().size() == 1);
+  model.toggleFavorite("ProbeModule");
+  CHECK(!model.isFavorite("ProbeModule"));
+
+  model.selectModule("ProbeModule");
+  CHECK(model.settingsOpen());
+  CHECK(model.selectedModule() != nullptr);
+  model.closeSettings();
+  CHECK(!model.settingsOpen());
+
+  const nlohmann::json saved = model.toJson();
+  CHECK(saved.contains("theme"));
+  CHECK(saved.contains("favorites"));
+  gui::ClickGuiModel restored(manager);
+  restored.fromJson(saved);
+  CHECK(restored.isOpen());
+  CHECK(restored.tab() == model.tab());
+  CHECK(restored.theme().menuKey.key == model.theme().menuKey.key);
+
+  model.setOpen(false);
+  model.update(5.0f);
+  CHECK(!model.isVisible());
+}
+
 void testEventBus() {
   events::EventBus bus;
   int calls = 0;
@@ -175,6 +223,8 @@ int main() {
   auto probe = std::make_unique<ProbeModule>();
   ProbeModule* probePointer = probe.get();
   manager.registerModule(std::move(probe));
+
+  testClickGuiModel(manager);
 
   lex::tests::NullPlatform platform;
   events::EventBus bus;

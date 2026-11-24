@@ -38,6 +38,38 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+# ---------------------------------------------------------------------------
+# Dependencia: Dear ImGui 1.91.9. El repo no trae CMakeLists, asi que se
+# puebla con FetchContent_Populate y se define nuestro propio target.
+# ---------------------------------------------------------------------------
+FetchContent_Declare(
+  imgui
+  URL "https://github.com/ocornut/imgui/archive/refs/tags/v1.91.9.tar.gz"
+  URL_HASH SHA256=3872a5f90df78fced023c1945f4466b654fd74573370b77b17742149763a7a7c
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+if(POLICY CMP0169)
+  cmake_policy(SET CMP0169 OLD)
+endif()
+FetchContent_GetProperties(imgui)
+if(NOT imgui_POPULATED)
+  FetchContent_Populate(imgui)
+endif()
+
+add_library(lex-imgui STATIC
+  ${imgui_SOURCE_DIR}/imgui.cpp
+  ${imgui_SOURCE_DIR}/imgui_draw.cpp
+  ${imgui_SOURCE_DIR}/imgui_tables.cpp
+  ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp
+  ${imgui_SOURCE_DIR}/backends/imgui_impl_dx12.cpp
+)
+target_include_directories(lex-imgui PUBLIC
+  ${imgui_SOURCE_DIR}
+  ${imgui_SOURCE_DIR}/backends
+)
+
 enable_testing()
 
 add_subdirectory(core)

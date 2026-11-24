@@ -18,6 +18,10 @@ add_library(lex-core STATIC
   config/ConfigManager.h
   config/ConfigManager.cpp
   platform/IPlatform.h
+  gui/GuiTheme.h
+  gui/GuiTheme.cpp
+  gui/ClickGuiModel.h
+  gui/ClickGuiModel.cpp
   util/Logger.h
   util/Logger.cpp
   util/Math.h
