@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>LeX Client</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><img src="logo-mark.png" alt=""><span>LeX</span></div>
+    <nav aria-label="Secciones">
+      <button data-page="play">Jugar</button>
+      <button data-page="modules">Módulos</button>
+      <button data-page="cosmetics">Cosméticos</button>
+      <button data-page="optimizer">Optimizador</button>
+      <button data-page="settings">Estado</button>
+    </nav>
+    <span id="version"></span>
+  </header>
+  <main>
+    <section id="page" tabindex="-1"></section>
+    <aside id="stage" aria-label="Vista previa del personaje. Arrastra para girar.">
+      <div id="scene"><div id="model"></div></div>
+      <div id="ground"></div>
+    </aside>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.mjs"></script>
+</body>
+</html>

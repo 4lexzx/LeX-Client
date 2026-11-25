@@ -1,0 +1,212 @@
+[
+  {
+    "category": "HUD",
+    "description": "Fotogramas reales por segundo",
+    "enabled": true,
+    "name": "FPS"
+  },
+  {
+    "category": "HUD",
+    "description": "Clics por segundo, ambos botones",
+    "enabled": true,
+    "name": "CPS"
+  },
+  {
+    "category": "HUD",
+    "description": "WASD, clics y espacio en vivo",
+    "enabled": true,
+    "name": "Teclas"
+  },
+  {
+    "category": "HUD",
+    "description": "Piezas con su textura y durabilidad",
+    "enabled": true,
+    "name": "Armadura"
+  },
+  {
+    "category": "HUD",
+    "description": "Golpes seguidos a jugadores sin recibir",
+    "enabled": true,
+    "name": "Combo"
+  },
+  {
+    "category": "HUD",
+    "description": "Distancia de tu último golpe a un jugador",
+    "enabled": true,
+    "name": "Alcance"
+  },
+  {
+    "category": "HUD",
+    "description": "Cuántos bloques tienes en la mano",
+    "enabled": true,
+    "name": "Bloques"
+  },
+  {
+    "category": "HUD",
+    "description": "Tu vida en número",
+    "enabled": false,
+    "name": "Vida"
+  },
+  {
+    "category": "HUD",
+    "description": "Tu posición X, Y, Z",
+    "enabled": false,
+    "name": "Coordenadas"
+  },
+  {
+    "category": "HUD",
+    "description": "Punto cardinal hacia el que avanzas",
+    "enabled": false,
+    "name": "Rumbo"
+  },
+  {
+    "category": "HUD",
+    "description": "Bloques por segundo",
+    "enabled": false,
+    "name": "Velocidad"
+  },
+  {
+    "category": "HUD",
+    "description": "El 1% más lento: delata los tirones",
+    "enabled": false,
+    "name": "FPS mínimos"
+  },
+  {
+    "category": "Visual",
+    "description": "Edita la mira del juego píxel a píxel",
+    "enabled": false,
+    "name": "Crosshair"
+  },
+  {
+    "category": "Visual",
+    "description": "Vida sobre otros jugadores, nunca criaturas",
+    "enabled": false,
+    "name": "Vida de jugadores"
+  },
+  {
+    "category": "Visual",
+    "description": "Contorno en el bloque que miras",
+    "enabled": false,
+    "name": "Borde de bloque"
+  },
+  {
+    "category": "Visual",
+    "description": "Ve en la oscuridad subiendo el brillo",
+    "enabled": false,
+    "name": "Brillo total"
+  },
+  {
+    "category": "Visual",
+    "description": "FOV más allá del límite del juego",
+    "enabled": false,
+    "name": "Campo de visión"
+  },
+  {
+    "category": "Visual",
+    "description": "La cámara no tiembla al recibir daño",
+    "enabled": false,
+    "name": "Sin sacudida"
+  },
+  {
+    "category": "Visual",
+    "description": "La cámara no se mueve al caminar",
+    "enabled": false,
+    "name": "Sin balanceo"
+  },
+  {
+    "category": "Visual",
+    "description": "Borde rojo cuando te queda poca vida",
+    "enabled": false,
+    "name": "Aviso de vida baja"
+  },
+  {
+    "category": "Utilidad",
+    "description": "Mantén TAB para ver quién está en línea",
+    "enabled": true,
+    "name": "Lista de jugadores"
+  },
+  {
+    "category": "Visual",
+    "description": "La capa LeX ondea al correr, saltar y girar",
+    "enabled": true,
+    "name": "Física de capa"
+  },
+  {
+    "category": "Visual",
+    "description": "Los objetos tirados giran al caer y quedan en el suelo",
+    "enabled": true,
+    "name": "Física de objetos"
+  },
+  {
+    "category": "Visual",
+    "description": "Aspa en la mira cuando tu golpe conecta",
+    "enabled": false,
+    "name": "Marcador de golpe"
+  },
+  {
+    "category": "Utilidad",
+    "description": "Avisa antes de que se rompa una pieza",
+    "enabled": false,
+    "name": "Aviso de armadura"
+  },
+  {
+    "category": "Visual",
+    "description": "Menos destello en espadas y armaduras encantadas",
+    "enabled": false,
+    "name": "Brillo de encantamiento"
+  },
+  {
+    "category": "Visual",
+    "description": "Oculta la mano y el objeto para ver más",
+    "enabled": false,
+    "name": "Sin mano"
+  },
+  {
+    "category": "Visual",
+    "description": "Opacidad de la barra y el HUD del juego",
+    "enabled": false,
+    "name": "Interfaz transparente"
+  },
+  {
+    "category": "Visual",
+    "description": "Sin distorsión por náusea o portales",
+    "enabled": false,
+    "name": "Visión clara"
+  },
+  {
+    "category": "HUD",
+    "description": "Porcentaje de clics que golpean",
+    "enabled": false,
+    "name": "Precisión"
+  },
+  {
+    "category": "HUD",
+    "description": "Cuánto llevas peleando sin parar",
+    "enabled": false,
+    "name": "Tiempo de combate"
+  },
+  {
+    "category": "HUD",
+    "description": "Hora de tu PC",
+    "enabled": false,
+    "name": "Reloj"
+  },
+  {
+    "category": "Utilidad",
+    "description": "Acerca la vista con calidad, como en Java",
+    "enabled": true,
+    "name": "Zoom"
+  },
+  {
+    "category": "Utilidad",
+    "description": "Corre siempre que avanzas",
+    "enabled": false,
+    "name": "Sprint automático"
+  },
+  {
+    "category": "Utilidad",
+    "description": "Más FPS. Algunos cambios se ven al reentrar al mundo",
+    "enabled": false,
+    "name": "Optimizador"
+  }
+]
