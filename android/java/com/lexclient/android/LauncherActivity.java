@@ -215,7 +215,7 @@ public class LauncherActivity extends Activity {
                         Object value = handle(name, new JSONArray(args));
                         result = value == null ? "null" : value instanceof String ? JSONObject.quote((String) value) : value.toString();
                     } catch (Exception error) {
-                        LexLog.e("Fallo en " + name, error);
+                        if (!(error instanceof Notice)) LexLog.e("Fallo en " + name, error);
                         String message = error.getMessage() != null ? error.getMessage() : error.toString();
                         result = "{\"__error\":" + JSONObject.quote(message) + "}";
                     }
@@ -371,7 +371,7 @@ public class LauncherActivity extends Activity {
     private boolean setModule(String name, boolean on) throws Exception {
         for (Object[] m : MODULES) {
             if (!m[0].equals(name)) continue;
-            if (!(Boolean) m[3]) throw new Exception(name + " llegará pronto a Android");
+            if (!(Boolean) m[3]) throw new Notice(name + " llegará pronto a Android");
             File file = modulesFile();
             JSONObject saved = file.exists() ? new JSONObject(new String(readAll(new FileInputStream(file)), StandardCharsets.UTF_8)) : new JSONObject();
             saved.put(name, on);
@@ -520,6 +520,13 @@ public class LauncherActivity extends Activity {
         file.getParentFile().mkdirs();
         try (OutputStream out = new FileOutputStream(file)) {
             out.write(data);
+        }
+    }
+
+    /** Aviso para la pantalla, no un fallo: no va al registro. */
+    static final class Notice extends Exception {
+        Notice(String message) {
+            super(message);
         }
     }
 }

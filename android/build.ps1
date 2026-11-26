@@ -24,7 +24,7 @@ $native = Join-Path $out 'native'
   -DANDROID_STL=c++_static -DCMAKE_BUILD_TYPE=Release | Out-Null
 if ($LASTEXITCODE) { throw 'Fallo la configuracion nativa' }
 & "$($cmake.FullName)\bin\cmake.exe" --build $native; if ($LASTEXITCODE) { throw 'Fallo la compilacion nativa' }
-Copy-Item "$native\libminecraftpe.so" "$stage\lib\arm64-v8a\libminecraftpe.so"
+Copy-Item "$native\liblex.so" "$stage\lib\arm64-v8a\liblex.so"
 
 # 3. Java.
 $android = "$($platform.FullName)\android.jar"

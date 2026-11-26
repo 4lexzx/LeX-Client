@@ -1,7 +1,7 @@
-// Puente: este archivo compila como libminecraftpe.so dentro del APK de LeX.
-// NativeActivity lo carga por el nombre "minecraftpe"; aqui se busca la
-// libminecraftpe.so real (la del Minecraft instalado, ya cargada por las clases
-// de Mojang), se instala LeX y se le pasa el arranque.
+// Puente: este archivo compila como liblex.so dentro del APK de LeX.
+// GameActivity lo carga por android.app.lib_name = "lex" y llama a su
+// GameActivity_onCreate; aqui se busca la libminecraftpe.so real (ya cargada
+// por LexApplication), se instala LeX y se le pasa el arranque.
 #include <android/native_activity.h>
 #include <dlfcn.h>
 #include <elf.h>
@@ -218,6 +218,7 @@ void forward(const char* entry, ANativeActivity* activity, void* savedState, siz
     return;
   }
   lex::installOverlay(real.path.c_str(), activity);
+  lex::registerInput(activity->env);
   lex::log("Arrancando el juego");
   start(activity, savedState, savedStateSize);
   lex::log("Arranque entregado al juego");

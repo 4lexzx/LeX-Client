@@ -6,8 +6,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.lexclient.android"
-    android:versionCode="3"
-    android:versionName="0.3.0">
+    android:versionCode="4"
+    android:versionName="0.4.0">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
 
@@ -28,7 +28,6 @@
 
     <application
         android:name=".LexApplication"
-        android:appComponentFactory=".LexComponentFactory"
         android:label="LeX Client"
         android:icon="@mipmap/ic_launcher"
         android:extractNativeLibs="true"
@@ -48,11 +47,11 @@
             </intent-filter>
         </activity>
 
-        <!-- La actividad del juego: es la clase real de Mojang, creada con el
-             cargador de clases del Minecraft instalado (LexComponentFactory).
-             lib_name hace que NativeActivity cargue nuestro puente
-             libminecraftpe.so, que localiza la libreria real y le pasa el
-             arranque con LeX ya enganchado. -->
+        <!-- La actividad del juego: es la clase real de Mojang (GameActivity),
+             que LexApplication anade al cargador de clases de LeX junto con
+             sus librerias. lib_name hace que GameActivity cargue nuestro puente
+             liblex.so, que localiza libminecraftpe.so y le pasa el arranque con
+             LeX ya enganchado. El tema AppCompat del juego se aplica al crearla. -->
         <activity
             android:name="com.mojang.minecraftpe.MainActivity"
             android:process=":minecraft"
@@ -63,7 +62,7 @@
             android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|density"
             android:resizeableActivity="true"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
-            <meta-data android:name="android.app.lib_name" android:value="minecraftpe" />
+            <meta-data android:name="android.app.lib_name" android:value="lex" />
         </activity>
 
         <provider

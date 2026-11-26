@@ -19,9 +19,9 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
-# Se llama libminecraftpe.so a proposito: NativeActivity carga este puente por
-# el nombre del juego (ver forwarder.cpp).
-add_library(minecraftpe SHARED
+# liblex.so: GameActivity carga este puente por android.app.lib_name (ver
+# forwarder.cpp y el manifiesto).
+add_library(lex SHARED
   forwarder.cpp
   got.cpp
   overlay.cpp
@@ -31,10 +31,10 @@ add_library(minecraftpe SHARED
   ${imgui_SOURCE_DIR}/imgui_widgets.cpp
   ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
-target_include_directories(minecraftpe PRIVATE ${imgui_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_definitions(minecraftpe PRIVATE IMGUI_IMPL_OPENGL_ES3)
-target_link_libraries(minecraftpe PRIVATE nlohmann_json::nlohmann_json EGL GLESv3 android log dl)
+target_include_directories(lex PRIVATE ${imgui_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(lex PRIVATE IMGUI_IMPL_OPENGL_ES3)
+target_link_libraries(lex PRIVATE nlohmann_json::nlohmann_json EGL GLESv3 android log dl)
 # Solo ANativeActivity_onCreate hacia fuera; libc++ estatica para no chocar
 # con la del juego.
-target_link_options(minecraftpe PRIVATE -Wl,--exclude-libs,ALL -static-libstdc++)
-set_target_properties(minecraftpe PROPERTIES CXX_VISIBILITY_PRESET hidden)
+target_link_options(lex PRIVATE -Wl,--exclude-libs,ALL -static-libstdc++)
+set_target_properties(lex PROPERTIES CXX_VISIBILITY_PRESET hidden)

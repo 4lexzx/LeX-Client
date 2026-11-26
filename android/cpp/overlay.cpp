@@ -7,6 +7,7 @@
 #include <android/input.h>
 #include <android/keycodes.h>
 #include <android/native_activity.h>
+#include <jni.h>
 #include <dlfcn.h>
 #include <time.h>
 #include <unistd.h>
@@ -240,72 +241,88 @@ void openMenu() {
   g_worn = loadout();
 }
 
-// true = el evento es de LeX y no llega al juego.
-bool handleEvent(AInputEvent* event) {
+// Entrada comun (cola nativa o ventana Java): true = es de LeX, no del juego.
+bool pointerEvent(int action, float x, float y, bool mouse, float scroll) {
   std::lock_guard<std::mutex> lock(g_lock);
-  if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
-    const int32_t action = AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_MASK;
-    const float x = AMotionEvent_getX(event, 0), y = AMotionEvent_getY(event, 0);
-    const int32_t source = AInputEvent_getSource(event);
-    const bool mouse = (source & AINPUT_SOURCE_MOUSE) == AINPUT_SOURCE_MOUSE;
-    if (action == AMOTION_EVENT_ACTION_SCROLL) {
-      if (!g_menu) return false;
-      g_wheel += AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_VSCROLL, 0);
-      g_pointer.x = x;
-      g_pointer.y = y;
-      return true;
-    }
-    if (action == AMOTION_EVENT_ACTION_DOWN) {
-      g_touch = !mouse;
-      g_pointer.consumed = g_menu || (g_showButton && overButton(x, y));
-      g_pointer.down = true;
-    }
-    if (action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL) {
-      // Toque corto sobre el boton LeX: abre o cierra el panel.
-      if (!g_menu && g_pointer.consumed && g_showButton && overButton(x, y)) openMenu();
-      g_pointer.down = false;
-    }
+  if (action == AMOTION_EVENT_ACTION_SCROLL) {
+    if (!g_menu) return false;
+    g_wheel += scroll;
     g_pointer.x = x;
     g_pointer.y = y;
-    if (mouse && action == AMOTION_EVENT_ACTION_BUTTON_PRESS) g_keys[1000] = true;
-    if (mouse && action == AMOTION_EVENT_ACTION_BUTTON_RELEASE) g_keys[1000] = false;
-    const bool ours = g_pointer.consumed || g_menu;
-    if (action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL) g_pointer.consumed = false;
-    return ours;
+    return true;
   }
-  if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY) {
-    const int32_t code = AKeyEvent_getKeyCode(event);
-    const bool down = AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_DOWN;
-    g_keys[code] = down;
-    if (down) {
-      // Igual que en PC: T, Enter o / abren el chat; Enter o Esc lo cierran.
-      if (!g_menu) {
-        if (g_chat && (code == AKEYCODE_ENTER || code == AKEYCODE_ESCAPE || code == AKEYCODE_BACK)) g_chat = false;
-        else if (!g_chat && (code == AKEYCODE_T || code == AKEYCODE_ENTER || code == AKEYCODE_SLASH)) g_chat = true;
-      }
-      // X abre y cierra el panel (fuera del chat).
-      if (code == AKEYCODE_X && !g_chat && AKeyEvent_getRepeatCount(event) == 0) {
-        if (g_menu) g_menu = false;
-        else openMenu();
-        return true;
-      }
-      if (g_menu && (code == AKEYCODE_ESCAPE || code == AKEYCODE_BACK)) {
-        g_menu = false;
-        return true;
-      }
+  if (action == AMOTION_EVENT_ACTION_DOWN) {
+    g_touch = !mouse;
+    g_pointer.consumed = g_menu || (g_showButton && overButton(x, y));
+    g_pointer.down = true;
+  }
+  if (action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL) {
+    // Toque corto sobre el boton LeX: abre el panel.
+    if (!g_menu && g_pointer.consumed && g_showButton && overButton(x, y)) openMenu();
+    g_pointer.down = false;
+  }
+  g_pointer.x = x;
+  g_pointer.y = y;
+  if (mouse && action == AMOTION_EVENT_ACTION_BUTTON_PRESS) g_keys[1000] = true;
+  if (mouse && action == AMOTION_EVENT_ACTION_BUTTON_RELEASE) g_keys[1000] = false;
+  const bool ours = g_pointer.consumed || g_menu;
+  if (action == AMOTION_EVENT_ACTION_UP || action == AMOTION_EVENT_ACTION_CANCEL) g_pointer.consumed = false;
+  return ours;
+}
+
+bool keyEvent(int code, bool down, int meta, int repeat) {
+  std::lock_guard<std::mutex> lock(g_lock);
+  g_keys[code] = down;
+  if (down) {
+    // Igual que en PC: T, Enter o / abren el chat; Enter o Esc lo cierran.
+    if (!g_menu) {
+      if (g_chat && (code == AKEYCODE_ENTER || code == AKEYCODE_ESCAPE || code == AKEYCODE_BACK)) g_chat = false;
+      else if (!g_chat && (code == AKEYCODE_T || code == AKEYCODE_ENTER || code == AKEYCODE_SLASH)) g_chat = true;
     }
-    if (g_menu) {
-      g_pendingKeys.emplace_back(code, down);
-      if (down) {
-        const int32_t meta = AKeyEvent_getMetaState(event);
-        if (code >= AKEYCODE_A && code <= AKEYCODE_Z) g_pendingChars.push_back((meta & AMETA_SHIFT_ON ? 'A' : 'a') + (code - AKEYCODE_A));
-        else if (code >= AKEYCODE_0 && code <= AKEYCODE_9) g_pendingChars.push_back('0' + (code - AKEYCODE_0));
-        else if (code == AKEYCODE_SPACE) g_pendingChars.push_back(' ');
-      }
+    // X abre y cierra el panel (fuera del chat).
+    if (code == AKEYCODE_X && !g_chat && repeat == 0) {
+      if (g_menu) g_menu = false;
+      else openMenu();
+      return true;
+    }
+    if (g_menu && (code == AKEYCODE_ESCAPE || code == AKEYCODE_BACK)) {
+      g_menu = false;
       return true;
     }
   }
+  if (code == AKEYCODE_X && !g_chat) return true;  // la X tampoco llega al juego al soltarla
+  if (g_menu) {
+    g_pendingKeys.emplace_back(code, down);
+    if (down) {
+      if (code >= AKEYCODE_A && code <= AKEYCODE_Z) g_pendingChars.push_back((meta & AMETA_SHIFT_ON ? 'A' : 'a') + (code - AKEYCODE_A));
+      else if (code >= AKEYCODE_0 && code <= AKEYCODE_9) g_pendingChars.push_back('0' + (code - AKEYCODE_0));
+      else if (code == AKEYCODE_SPACE) g_pendingChars.push_back(' ');
+    }
+    return true;
+  }
   return false;
+}
+
+bool handleEvent(AInputEvent* event) {
+  if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION) {
+    const int32_t action = AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_MASK;
+    const bool mouse = (AInputEvent_getSource(event) & AINPUT_SOURCE_MOUSE) == AINPUT_SOURCE_MOUSE;
+    return pointerEvent(action, AMotionEvent_getX(event, 0), AMotionEvent_getY(event, 0), mouse,
+                        action == AMOTION_EVENT_ACTION_SCROLL ? AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_VSCROLL, 0) : 0);
+  }
+  if (AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY) {
+    return keyEvent(AKeyEvent_getKeyCode(event), AKeyEvent_getAction(event) == AKEY_EVENT_ACTION_DOWN, AKeyEvent_getMetaState(event),
+                    AKeyEvent_getRepeatCount(event));
+  }
+  return false;
+}
+
+jboolean jniPointer(JNIEnv*, jclass, jint action, jfloat x, jfloat y, jboolean mouse, jfloat scroll) {
+  return pointerEvent(action, x, y, mouse, scroll) ? JNI_TRUE : JNI_FALSE;
+}
+
+jboolean jniKey(JNIEnv*, jclass, jint code, jboolean down, jint meta, jint repeat) {
+  return keyEvent(code, down, meta, repeat) ? JNI_TRUE : JNI_FALSE;
 }
 
 int32_t getEventHook(AInputQueue* queue, AInputEvent** out) {
@@ -828,6 +845,29 @@ void drawFrame() {
 }
 
 }  // namespace
+
+// La entrada de GameActivity llega por Java (LexInput): sus metodos nativos
+// son estos. FindClass usa el cargador de la actividad, que es el de LeX.
+void registerInput(JNIEnv* env) {
+  if (env == nullptr) return;
+  jclass input = env->FindClass("com/lexclient/android/LexInput");
+  if (input == nullptr) {
+    env->ExceptionClear();
+    log("ERROR: no se encontro LexInput (entrada de LeX desactivada)");
+    return;
+  }
+  static const JNINativeMethod methods[] = {
+      {"pointer", "(IFFZF)Z", reinterpret_cast<void*>(&jniPointer)},
+      {"key", "(IZII)Z", reinterpret_cast<void*>(&jniKey)},
+  };
+  if (env->RegisterNatives(input, methods, 2) != 0) {
+    env->ExceptionClear();
+    log("ERROR: no se pudo registrar la entrada de LeX");
+  } else {
+    log("Entrada de LeX registrada");
+  }
+  env->DeleteLocalRef(input);
+}
 
 void installOverlay(const char* gameLibrary, ANativeActivity* activity) {
   if (activity->internalDataPath) g_files = activity->internalDataPath;

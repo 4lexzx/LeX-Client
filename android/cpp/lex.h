@@ -17,4 +17,7 @@ void* hookImport(const char* library, const char* symbol, void* replacement);
 // Panel, HUD y entrada (overlay.cpp).
 void installOverlay(const char* gameLibrary, ANativeActivity* activity);
 
+// Metodos nativos de com.lexclient.android.LexInput (entrada desde Java).
+void registerInput(JNIEnv* env);
+
 }  // namespace lex
