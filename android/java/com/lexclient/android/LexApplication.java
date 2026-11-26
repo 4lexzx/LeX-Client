@@ -16,7 +16,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * En el proceso del juego (":minecraft") prepara el Minecraft instalado para
@@ -95,32 +97,65 @@ public class LexApplication extends Application {
             Method addNativePath = pathList.getClass().getDeclaredMethod("addNativePath", java.util.Collection.class);
             addNativePath.setAccessible(true);
             addNativePath.invoke(pathList, Arrays.asList(info.nativeLibraryDir));
+            minecraftLibrariesFirst(pathList, info.nativeLibraryDir);
         }
         Class<?> game = loader.loadClass(GAME_ACTIVITY);
         LexLog.i("Codigo de Minecraft listo (" + apks.size() + " apk): " + game.getName());
     }
 
     /**
-     * Librerias del juego, dependencias primero: asi libminecraftpe.so
-     * encuentra libc++_shared, libfmod... ya cargadas.
+     * La carpeta de librerias de Minecraft se busca antes que /system/lib64:
+     * si no, System.loadLibrary("c++_shared") del juego encuentra la del
+     * sistema, que Android no deja usar a una app.
+     */
+    private static void minecraftLibrariesFirst(Object pathList, String dir) {
+        try {
+            Field field = pathList.getClass().getDeclaredField("nativeLibraryPathElements");
+            field.setAccessible(true);
+            Object[] elements = (Object[]) field.get(pathList);
+            List<Object> first = new ArrayList<>();
+            List<Object> rest = new ArrayList<>();
+            for (Object e : elements) (String.valueOf(e).contains(dir) ? first : rest).add(e);
+            first.addAll(rest);
+            Object[] sorted = (Object[]) java.lang.reflect.Array.newInstance(elements.getClass().getComponentType(), elements.length);
+            field.set(pathList, first.toArray(sorted));
+            LexLog.i("Orden de busqueda de librerias: " + first);
+        } catch (Throwable error) {
+            LexLog.e("No se pudo ordenar la busqueda de librerias", error);
+        }
+    }
+
+    /**
+     * Librerias del juego. Cada una necesita otras (libminecraftpe.so pide
+     * libPlayFabMultiplayer.so, que pide libpairipcore.so...): se cargan por
+     * pasadas, reintentando las que fallan hasta que no queda ninguna o ya no
+     * se avanza.
      */
     private void loadLibraries() {
         String dir = minecraft.getApplicationInfo().nativeLibraryDir;
         String[] names = dir != null ? new File(dir).list() : null;
         if (names == null) return;
-        List<String> order = new ArrayList<>(Arrays.asList("libc++_shared.so", "libfmod.so", "libMediaDecoders_Android.so"));
-        for (String name : names) if (name.endsWith(".so") && !order.contains(name) && !name.equals("libminecraftpe.so")) order.add(name);
-        order.add("libminecraftpe.so");
-        for (String name : order) {
-            File lib = new File(dir, name);
-            if (!lib.exists()) continue;
-            try {
-                System.load(lib.getAbsolutePath());
-                LexLog.i("Cargada " + name);
-            } catch (Throwable error) {
-                LexLog.e("No se pudo cargar " + name, error);
+        List<String> pending = new ArrayList<>(Arrays.asList("libc++_shared.so", "libfmod.so", "libpairipcore.so"));
+        pending.retainAll(Arrays.asList(names));
+        for (String name : names) if (name.endsWith(".so") && !pending.contains(name) && !name.equals("libminecraftpe.so")) pending.add(name);
+        pending.add("libminecraftpe.so");
+        Map<String, Throwable> errors = new LinkedHashMap<>();
+        for (int pass = 1; !pending.isEmpty(); pass++) {
+            List<String> failed = new ArrayList<>();
+            errors.clear();
+            for (String name : pending) {
+                try {
+                    System.load(new File(dir, name).getAbsolutePath());
+                    LexLog.i("Cargada " + name + " (pasada " + pass + ")");
+                } catch (Throwable error) {
+                    failed.add(name);
+                    errors.put(name, error);
+                }
             }
+            if (failed.size() == pending.size()) break;  // ya no se avanza
+            pending = failed;
         }
+        for (Map.Entry<String, Throwable> e : errors.entrySet()) LexLog.e("No se pudo cargar " + e.getKey(), e.getValue());
     }
 
     @Override
