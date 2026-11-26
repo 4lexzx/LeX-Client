@@ -60,7 +60,8 @@ final class PackInstaller {
         };
     }
 
-    void install(Map<String, String> loadout) throws Exception {
+    /** Los archivos del pack con el loadout puesto (atlas y particulas incluidos). */
+    Map<String, byte[]> compose(Map<String, String> loadout) throws Exception {
         String kill = key(loadout.get("kill"), "kill-");
         String death = key(loadout.get("death"), "death-");
         Map<String, byte[]> files = new HashMap<>();
@@ -68,6 +69,11 @@ final class PackInstaller {
         collect("lex/combos/" + kill + "__" + death, "", files);
         files.put("textures/lex/atlas.png", png(atlas(loadout)));
         channels(loadout, files);
+        return files;
+    }
+
+    void install(Map<String, String> loadout) throws Exception {
+        Map<String, byte[]> files = compose(loadout);
         String manifest = new String(files.get("manifest.json"), StandardCharsets.UTF_8);
         JSONObject header = new JSONObject(manifest).getJSONObject("header");
         String packs = "[{\"pack_id\":\"" + header.getString("uuid") + "\",\"version\":" + header.getJSONArray("version") + "}]";
@@ -78,7 +84,27 @@ final class PackInstaller {
             for (Map.Entry<String, byte[]> f : files.entrySet()) write(new File(root, f.getKey()), f.getValue());
             write(new File(dir, "minecraftpe/global_resource_packs.json"), packs.getBytes(StandardCharsets.UTF_8));
         }
-        LexLog.i("Pack de LeX instalado (" + files.size() + " archivos, baja " + kill + ", muerte " + death + ")");
+        LexLog.i("Pack de LeX instalado (" + files.size() + " archivos)");
+    }
+
+    /**
+     * Empaqueta el pack con tu loadout en un .mcpack (un zip) que Minecraft
+     * importa como "paquete de recursos" por su propia via, sin inyeccion.
+     */
+    File exportMcpack(Map<String, String> loadout) throws Exception {
+        Map<String, byte[]> files = compose(loadout);
+        File dir = new File(context.getFilesDir(), "share");
+        dir.mkdirs();
+        File out = new File(dir, "LeX_Cosmetics.mcpack");
+        try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(new FileOutputStream(out))) {
+            for (Map.Entry<String, byte[]> f : files.entrySet()) {
+                zip.putNextEntry(new java.util.zip.ZipEntry(f.getKey()));
+                zip.write(f.getValue());
+                zip.closeEntry();
+            }
+        }
+        LexLog.i("Pack exportado: " + out.getName() + " (" + files.size() + " archivos, " + out.length() / 1024 + " kB)");
+        return out;
     }
 
     /** Carpeta files/panel: lo que el panel nativo dibuja dentro del juego. */

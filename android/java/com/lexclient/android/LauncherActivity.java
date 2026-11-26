@@ -278,8 +278,8 @@ public class LauncherActivity extends Activity {
         s.put("running", false);
         s.put("android", true);
         s.put("note", version != null
-            ? "Minecraft " + version + ". En el juego, toca el botón LeX o pulsa X con teclado."
-            : "Instala Minecraft desde la Play Store para jugar con LeX.");
+            ? "Minecraft " + version + ". Pulsa Aplicar y actívalo como paquete de recursos en tu mundo."
+            : "Instala Minecraft desde la Play Store para usar los cosméticos de LeX.");
         return s;
     }
 
@@ -291,7 +291,7 @@ public class LauncherActivity extends Activity {
         rows.put(row("Minecraft", version != null ? version : "No instalado", version != null));
         rows.put(row("Dispositivo", Build.MANUFACTURER + " " + Build.MODEL + " · Android " + Build.VERSION.RELEASE, true));
         rows.put(row("Arquitectura", Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "?", Build.SUPPORTED_ABIS.length > 0 && Build.SUPPORTED_ABIS[0].equals("arm64-v8a")));
-        rows.put(row("Cosméticos en el juego", pack ? "Preparados" : "Se preparan al pulsar Jugar", true));
+        rows.put(row("Cómo se ponen", "Aplicar → Minecraft los importa como pack", true));
         rows.put(row("Versión de LeX", lexVersion(), true));
         s.put("rows", rows);
         return s;
@@ -446,22 +446,34 @@ public class LauncherActivity extends Activity {
         });
     }
 
-    // ---------------------------------------------------------- jugar
+    // ------------------------------------------------- aplicar (importar pack)
+    /**
+     * Genera el .mcpack con tu loadout y se lo pasa a Minecraft para que lo
+     * importe por su propia via (sin inyeccion, sin tocar su proceso).
+     */
     private JSONObject play() throws Exception {
-        if (minecraftVersion() == null) throw new Exception("Instala Minecraft desde la Play Store primero.");
+        if (minecraftVersion() == null) throw new Notice("Instala Minecraft desde la Play Store primero.");
         if (installer == null) throw new Exception("El APK de LeX está dañado: reinstálalo.");
-        installer.install(loadoutMap());
-        installer.writePanel();
+        final File mcpack = installer.exportMcpack(loadoutMap());
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Intent game = new Intent().setClassName(LauncherActivity.this, "com.mojang.minecraftpe.MainActivity");
-                game.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                LexLog.i("Arrancando Minecraft dentro de LeX");
-                startActivity(game);
+                try {
+                    Uri uri = ShareProvider.uriFor(mcpack.getName());
+                    Intent view = new Intent(Intent.ACTION_VIEW)
+                        .setDataAndType(uri, "application/octet-stream")
+                        .setPackage(LexApplication.MINECRAFT)
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+                    grantUriPermission(LexApplication.MINECRAFT, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    LexLog.i("Importando el pack en Minecraft");
+                    startActivity(view);
+                } catch (Exception error) {
+                    LexLog.e("No se pudo abrir Minecraft para importar", error);
+                    web.evaluateJavascript("window.__lexEvent && __lexEvent('crash', " + JSONObject.quote("No se pudo abrir Minecraft para importar el pack.") + ")", null);
+                }
             }
         });
-        return new JSONObject().put("ok", true).put("message", "Abriendo Minecraft con LeX…");
+        return new JSONObject().put("ok", true).put("message", "Abriendo Minecraft para importar tus cosméticos…");
     }
 
     /** Cosmeticos sin miniatura para el panel (se rehacen al cambiar de version de LeX). */

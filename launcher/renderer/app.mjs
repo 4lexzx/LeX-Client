@@ -129,7 +129,7 @@ function wornList() {
 const pages = {
   async play() {
     const status = await lex.snapshot();
-    const label = () => (busy ? 'Abriendo' : status.running ? 'Activar LeX' : 'Jugar');
+    const label = () => (android ? (busy ? 'Abriendo Minecraft…' : 'Aplicar en Minecraft') : busy ? 'Abriendo' : status.running ? 'Activar LeX' : 'Jugar');
     const button = el('button', { className: 'primary', textContent: label(), disabled: busy });
     button.onclick = async () => {
       busy = true;
@@ -142,8 +142,8 @@ const pages = {
     };
     return [el('div', { className: 'hero' },
       el('img', { src: 'logo-mark.png', alt: '' }),
-      el('h1', { textContent: 'Juega a tu manera' }),
-      el('p', { textContent: 'Todo se prepara solo: módulos, cosméticos y rendimiento.' }),
+      el('h1', { textContent: android ? 'Tus cosméticos' : 'Juega a tu manera' }),
+      el('p', { textContent: android ? 'Elige tu estilo y pulsa Aplicar: Minecraft lo importa como paquete de recursos.' : 'Todo se prepara solo: módulos, cosméticos y rendimiento.' }),
       button,
       el('p', {
         className: 'note',
