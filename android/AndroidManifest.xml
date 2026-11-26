@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LeX Client para Android. Arranca el Minecraft Bedrock instalado desde la Play
+  Store DENTRO de esta app (proceso :minecraft), con la libreria nativa de LeX
+  cargada. No incluye ningun archivo de Mojang: usa los del juego instalado.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.lexclient.android"
+    android:versionCode="1"
+    android:versionName="0.1.0">
+
+    <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="34" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="com.android.vending.CHECK_LICENSE" />
+    <uses-permission android:name="com.android.vending.BILLING" />
+
+    <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+
+    <queries>
+        <package android:name="com.mojang.minecraftpe" />
+    </queries>
+
+    <application
+        android:name=".LexApplication"
+        android:appComponentFactory=".LexComponentFactory"
+        android:label="LeX Client"
+        android:icon="@mipmap/ic_launcher"
+        android:extractNativeLibs="true"
+        android:hardwareAccelerated="true"
+        android:largeHeap="true"
+        android:requestLegacyExternalStorage="true"
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="true"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- La actividad del juego: es la clase real de Mojang, creada con el
+             cargador de clases del Minecraft instalado (LexComponentFactory).
+             lib_name hace que NativeActivity cargue nuestro puente
+             libminecraftpe.so, que localiza la libreria real y le pasa el
+             arranque con LeX ya enganchado. -->
+        <activity
+            android:name="com.mojang.minecraftpe.MainActivity"
+            android:process=":minecraft"
+            android:taskAffinity="com.lexclient.android.minecraft"
+            android:launchMode="singleTask"
+            android:exported="false"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|density"
+            android:resizeableActivity="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen">
+            <meta-data android:name="android.app.lib_name" android:value="minecraftpe" />
+        </activity>
+
+        <provider
+            android:name=".LogProvider"
+            android:authorities="com.lexclient.android.logs"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+    </application>
+</manifest>

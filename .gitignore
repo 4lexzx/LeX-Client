@@ -4,3 +4,5 @@ client/build*/
 launcher/native/
 launcher/release/
 *.log
+android/build/
+android/lex-debug.keystore
