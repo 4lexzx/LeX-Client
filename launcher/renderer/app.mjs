@@ -10,6 +10,7 @@ const toastEl = document.querySelector('#toast');
 const view = document.querySelector('#view');
 const viewer = createViewer((id) => lex.texture(id));
 const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const android = lex.platform === 'android';
 
 let loadout = {};
 let busy = false;
@@ -116,6 +117,15 @@ function tile(media, name, on, yes, no, onToggle, hint) {
   return node;
 }
 
+// Lo que llevas puesto, como etiquetas (en movil el personaje queda lejos).
+function wornList() {
+  const worn = SLOTS.map((slot) => [slot, find(loadout[slot.id])]).filter(([, item]) => item);
+  const box = el('div', { className: worn.length ? 'worn' : 'worn none' });
+  if (!worn.length) box.append(el('span', { textContent: 'Nada equipado todavía: elige en Cosméticos.' }));
+  for (const [slot, item] of worn) box.append(el('span', {}, el('b', { textContent: slot.label }), item.name));
+  return [el('p', { className: 'worn-title', textContent: 'Llevas puesto' }), box];
+}
+
 const pages = {
   async play() {
     const status = await lex.snapshot();
@@ -137,8 +147,9 @@ const pages = {
       button,
       el('p', {
         className: 'note',
-        textContent: status.installed ? `Minecraft ${status.version}. Dentro de un mundo, pulsa L para abrir LeX.` : 'No se encontró Minecraft for Windows.',
-      }))];
+        textContent: status.note ?? (status.installed ? `Minecraft ${status.version}. Dentro de un mundo, pulsa L para abrir LeX.` : 'No se encontró Minecraft for Windows.'),
+      }),
+      ...(android ? wornList() : []))];
   },
 
   async modules() {
@@ -221,6 +232,7 @@ const pages = {
 
   async settings() {
     const s = await lex.snapshot();
+    if (android) return androidSettings(s);
     const rows = [
       ['Minecraft', s.installed ? s.version : 'No instalado', s.installed],
       ['Carpeta del juego', s.dir ?? 'No encontrada', s.dir],
@@ -257,6 +269,22 @@ const pages = {
   },
 };
 
+function androidSettings(s) {
+  const list = el('dl');
+  for (const [k, v, ok] of s.rows) list.append(el('dt', { textContent: k }), el('dd', { textContent: v, className: ok ? '' : 'bad' }));
+  const button = (text, action, primary) => el('button', { className: primary ? 'primary small' : 'secondary', textContent: text, onclick: action });
+  return [el('h1', { textContent: 'Estado' }), list,
+    el('p', { className: 'hint', textContent: 'La skin solo se usa para la vista previa de aquí. Dentro del juego llevas la tuya de siempre.' }),
+    el('div', { className: 'actions' },
+      button('Elegir skin (PNG)', () => lex.pickSkin(), true),
+      button('Compartir registro', () => lex.shareLog()),
+      button('Quitar LeX del juego', async () => {
+        const result = await attempt(() => lex.uninstall());
+        if (result) toast(result);
+        show('settings');
+      }))];
+}
+
 async function show(name, fresh = true) {
   current = name;
   for (const b of document.querySelectorAll('nav button')) {
@@ -289,9 +317,15 @@ for (const b of document.querySelectorAll('nav button')) {
   };
 }
 // Si cambias un cosmetico dentro del juego, el launcher lo refleja al volver.
-addEventListener('focus', async () => {
+const back = async () => {
   loadout = (await attempt(() => lex.loadout())) ?? loadout;
   refresh();
+};
+addEventListener('focus', back);
+addEventListener('lex:resume', back);
+addEventListener('lex:skin', async (e) => {
+  await viewer.setSkin(e.detail);
+  toast({ ok: true, message: 'Skin cambiada.' });
 });
 
 // La skin sale de la ultima conocida antes de pintar nada.

@@ -4,8 +4,6 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Rect;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -83,6 +81,16 @@ final class PackInstaller {
         LexLog.i("Pack de LeX instalado (" + files.size() + " archivos, baja " + kill + ", muerte " + death + ")");
     }
 
+    /** Quita el pack de LeX de las carpetas del juego. */
+    void uninstall() {
+        for (File dir : gameDirs()) {
+            if (dir == null) continue;
+            delete(new File(dir, "development_resource_packs/LeX_Cosmetics"));
+            new File(dir, "minecraftpe/global_resource_packs.json").delete();
+        }
+        LexLog.i("Pack de LeX quitado");
+    }
+
     private static String key(String id, String prefix) {
         return id != null && id.startsWith(prefix) ? id.substring(prefix.length()) : "none";
     }
@@ -106,17 +114,14 @@ final class PackInstaller {
     /** La textura de cosmeticos con lo que llevas puesto (primer fotograma). */
     private Bitmap atlas(Map<String, String> loadout) throws Exception {
         JSONArray size = catalog.getJSONArray("atlas");
-        Bitmap atlas = Bitmap.createBitmap(size.getInt(0) * DENSITY, size.getInt(1) * DENSITY, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(atlas);
+        Bitmap atlas = blank(size.getInt(0) * DENSITY, size.getInt(1) * DENSITY);
         for (String id : loadout.values()) {
             JSONObject item = id == null ? null : item(id);
             if (item == null || item.has("trail")) continue;
             Bitmap art = image("lex/cosmetics/" + id + ".png");
             if (art == null) continue;
             JSONArray r = item.getJSONArray("rect");
-            int w = r.getInt(2) * DENSITY;
-            int h = r.getInt(3) * DENSITY;
-            canvas.drawBitmap(art, new Rect(0, 0, w, h), new Rect(r.getInt(0) * DENSITY, r.getInt(1) * DENSITY, r.getInt(0) * DENSITY + w, r.getInt(1) * DENSITY + h), null);
+            blit(atlas, art, r.getInt(0) * DENSITY, r.getInt(1) * DENSITY, r.getInt(2) * DENSITY, r.getInt(3) * DENSITY);
             art.recycle();
         }
         return atlas;
@@ -131,8 +136,8 @@ final class PackInstaller {
                 int channel = item.getInt("trail");
                 Bitmap art = image("lex/cosmetics/" + id + ".png");
                 if (art == null) continue;
-                Bitmap sheet = Bitmap.createBitmap(264, 40 + channel, Bitmap.Config.ARGB_8888);
-                new Canvas(sheet).drawBitmap(art, 0, 0, null);
+                Bitmap sheet = blank(264, 40 + channel);
+                blit(sheet, art, 0, 0, 264, 40 + channel);
                 files.put("textures/lex/p/" + channel + ".png", png(sheet));
             }
             JSONArray particles = item.optJSONArray("particles");
@@ -142,6 +147,26 @@ final class PackInstaller {
                 if (art != null) files.put("textures/lex/fp/" + p.getInt("channel") + ".png", png(art));
             }
         }
+    }
+
+    /**
+     * Lienzo sin premultiplicar: los colores semitransparentes se guardan tal
+     * cual (Canvas no acepta bitmaps sin premultiplicar, por eso se copian
+     * los pixeles a mano).
+     */
+    private static Bitmap blank(int w, int h) {
+        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        bitmap.setPremultiplied(false);
+        return bitmap;
+    }
+
+    private static void blit(Bitmap dst, Bitmap src, int x, int y, int w, int h) {
+        w = Math.min(w, Math.min(src.getWidth(), dst.getWidth() - x));
+        h = Math.min(h, Math.min(src.getHeight(), dst.getHeight() - y));
+        if (w <= 0 || h <= 0) return;
+        int[] pixels = new int[w * h];
+        src.getPixels(pixels, 0, w, 0, 0, w, h);
+        dst.setPixels(pixels, 0, w, x, y, w, h);
     }
 
     private Bitmap image(String path) {

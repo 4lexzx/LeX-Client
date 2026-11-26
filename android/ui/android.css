@@ -1,0 +1,50 @@
+/* Ajustes del launcher de PC para pantallas de movil. */
+body.android { grid-template-rows: auto 1fr; font-size: 15px; -webkit-tap-highlight-color: transparent; }
+.android header { gap: 14px; padding: max(10px, env(safe-area-inset-top)) 16px 10px; flex-wrap: wrap; }
+.android .brand { font-size: 22px; }
+.android .brand img { width: 38px; height: 38px; }
+.android nav { order: 3; width: 100%; overflow-x: auto; scrollbar-width: none; gap: 6px; }
+.android nav::-webkit-scrollbar { display: none; }
+.android nav button { padding: 9px 16px; white-space: nowrap; font-size: 15px; background: var(--panel); }
+.android #version { font-size: 13px; }
+.android #page { padding: 20px 16px 28px; -webkit-overflow-scrolling: touch; }
+.android h1 { font-size: 28px; }
+.android .hero { justify-content: flex-start; padding-top: 6px; }
+.android .hero h1 { font-size: 40px; }
+.android .hero img { width: 270px; right: -60px; top: 120px; }
+.android .primary { width: 100%; max-width: 420px; padding: 16px 20px; }
+.android .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.android .modules { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.android .tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 10px -16px 16px; padding: 0 16px; }
+.android .tabs::-webkit-scrollbar { display: none; }
+.android .tabs button { white-space: nowrap; }
+.android .card3d { width: 100%; height: auto; aspect-ratio: 172 / 190; }
+.android dl { grid-template-columns: 1fr; gap: 2px; }
+.android dt { margin-top: 10px; }
+.android #toast { left: 16px; right: 16px; bottom: max(18px, env(safe-area-inset-bottom)); max-width: none; }
+.android .tile:hover { background: var(--panel); }
+
+/* Lo que llevas puesto, en la pantalla de Jugar. */
+.worn { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; max-width: 520px; }
+.worn span { display: inline-flex; gap: 6px; align-items: baseline; padding: 7px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-size: 14px; }
+.worn span b { color: var(--muted); font-weight: 400; font-size: 12px; }
+.worn.none span { color: var(--muted); }
+.worn-title { margin: 26px 0 0; font: 600 16px Bahnschrift, "Segoe UI", sans-serif; color: var(--text); }
+
+/* Vertical: el personaje arriba, el contenido debajo. */
+@media (orientation: portrait) {
+  .android main { grid-template-columns: 1fr; grid-template-rows: minmax(220px, 36vh) 1fr; background: radial-gradient(circle at 50% 18%, #1d3a66 0, #101a2e 220px, var(--night) 420px); }
+  .android #stage { grid-row: 1; }
+  .android #page { grid-row: 2; }
+}
+/* Horizontal: como en PC, con el personaje a la derecha. */
+@media (orientation: landscape) {
+  .android header { flex-wrap: nowrap; padding-top: 8px; padding-bottom: 8px; padding-left: max(16px, env(safe-area-inset-left)); }
+  .android nav { order: 0; width: auto; }
+  .android #version { margin-left: auto; }
+  .android main { grid-template-columns: minmax(0, 1fr) 38vw; background: radial-gradient(circle at calc(100% - 19vw) 55%, #1d3a66 0, #101a2e 240px, var(--night) 440px); }
+  .android .hero h1 { font-size: 34px; }
+  .android .hero img { display: none; }
+}
+/* Un poco de aire arriba y abajo: con alas el personaje llena la altura. */
+.android #view { inset: 5% 0; height: 90%; }

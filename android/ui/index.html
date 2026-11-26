@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'">
+  <title>LeX Client</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="android.css">
+</head>
+<body class="android">
+  <header>
+    <div class="brand"><img src="logo-mark.png" alt=""><span>LeX</span></div>
+    <nav aria-label="Secciones">
+      <button data-page="play">Jugar</button>
+      <button data-page="cosmetics">Cosméticos</button>
+      <button data-page="modules">Módulos</button>
+      <button data-page="settings">Estado</button>
+    </nav>
+    <span id="version"></span>
+  </header>
+  <main>
+    <section id="page" tabindex="-1"></section>
+    <aside id="stage" aria-label="Vista previa del personaje. Desliza para girar.">
+      <canvas id="view"></canvas>
+    </aside>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="bridge.js"></script>
+  <script type="module" src="app.mjs"></script>
+</body>
+</html>

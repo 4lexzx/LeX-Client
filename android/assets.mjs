@@ -75,3 +75,17 @@ for (const c of COSMETICS) {
 for (const p of fileAssets.compiled.particles) put(join(out, 'lex', 'cosmetics', `${p.id}.fp${p.channel}.png`), fileAssets.particle(p));
 put(join(out, 'lex', 'catalog.json'), JSON.stringify({ atlas: [ATLAS.w, ATLAS.h], items }));
 console.log(`assets: pack ${base.size} archivos, ${comboFiles} de combinaciones, ${items.length} cosmeticos`);
+
+// Interfaz: la misma del launcher de PC (app.mjs, viewer.mjs, estilos) con el
+// puente a Java y los ajustes de movil de android/ui.
+rmSync(join(out, 'ui'), { recursive: true, force: true });
+const copyDir = (from, to, filter = () => true) => {
+  for (const name of readdirSync(from).filter(filter)) put(join(to, name), readFileSync(join(from, name)));
+};
+copyDir(join(here, 'ui'), join(out, 'ui', 'renderer'));
+for (const name of ['style.css', 'app.mjs', 'viewer.mjs', 'logo-mark.png']) put(join(out, 'ui', 'renderer', name), readFileSync(join(launcher, 'renderer', name)));
+copyDir(join(launcher, 'assets', 'icons'), join(out, 'ui', 'renderer', 'icons'), (n) => n.endsWith('.png'));
+copyDir(join(launcher, 'shared'), join(out, 'ui', 'shared'), (n) => n.endsWith('.mjs'));
+const compiled = fileAssets.compiled;
+put(join(out, 'lex', 'files.json'), JSON.stringify({ items: compiled.items, bones: compiled.bones, animations: {}, controllers: {}, entity: { animations: {}, animate: [], particles: {} }, particles: [] }));
+console.log('interfaz copiada');

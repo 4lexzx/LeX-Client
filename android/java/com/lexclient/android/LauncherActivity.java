@@ -2,187 +2,400 @@ package com.lexclient.android;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
-import android.view.Gravity;
+import android.util.Base64;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.Spinner;
-import android.widget.TextView;
+import android.view.Window;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileWriter;
-import java.util.ArrayList;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-/** Pantalla de LeX: estado, equipamiento, Jugar y Compartir registro. */
+/**
+ * Pantalla de LeX: la misma interfaz que el launcher de PC (assets/ui), en un
+ * WebView. Las llamadas de la pagina (window.lex) llegan a {@link Bridge}.
+ */
 public class LauncherActivity extends Activity {
-    private static final int BG = Color.rgb(9, 13, 22);
-    private static final int CARD = Color.rgb(18, 26, 42);
-    private static final int ACCENT = Color.rgb(47, 155, 255);
-    private static final String[][] SLOTS = {
-        {"cape", "Capa"}, {"wings", "Alas"}, {"head", "Cabeza"}, {"pet", "Mascota"}, {"aura", "Aura"},
-        {"trail", "Partículas"}, {"hit", "Golpes"}, {"kill", "Kills"}, {"death", "Muertes"},
+    private static final String ORIGIN = "https://appassets.androidplatform.net";
+    private static final int PICK_SKIN = 7;
+    /** Modulos del panel nativo: nombre, descripcion, encendido de serie, disponible. */
+    private static final Object[][] MODULES = {
+        {"FPS", "Fotogramas por segundo", true, true},
+        {"Reloj", "La hora del dispositivo", false, true},
+        {"Teclas", "WASD, espacio y ratón (teclado conectado)", false, true},
+        {"Coordenadas", "X Y Z del jugador", true, true},
+        {"Vida", "Tu vida con corazón", true, true},
+        {"Armadura", "Durabilidad de tu armadura", false, true},
+        {"Velocidad", "Bloques por segundo", false, true},
+        {"Rumbo", "Hacia dónde miras", false, true},
+        {"Zoom", "Próximamente en Android", false, false},
+        {"Brillo total", "Próximamente en Android", false, false},
+        {"Física de objetos", "Próximamente en Android", false, false},
+        {"Lista de jugadores", "Próximamente en Android", false, false},
     };
-    private final Map<String, String> loadout = new LinkedHashMap<>();
+    private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private PackInstaller installer;
-    private TextView status;
+    private WebView web;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         LexLog.init(this);
         LexLog.i("LeX abierto");
-        final SharedPreferences prefs = getSharedPreferences("loadout", MODE_PRIVATE);
         try {
             installer = new PackInstaller(this);
         } catch (Exception error) {
             LexLog.e("Catalogo de cosmeticos ilegible", error);
         }
+        Window window = getWindow();
+        window.setStatusBarColor(Color.rgb(10, 15, 26));
+        window.setNavigationBarColor(Color.rgb(10, 15, 26));
 
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(BG);
-        int pad = dp(18);
-        root.setPadding(pad, pad, pad, pad);
-
-        TextView title = text("LeX Client", 30, Color.WHITE);
-        title.setTypeface(Typeface.DEFAULT_BOLD);
-        root.addView(title);
-        status = text(minecraftStatus(), 14, Color.rgb(150, 170, 200));
-        root.addView(status);
-
-        LinearLayout slots = new LinearLayout(this);
-        slots.setOrientation(LinearLayout.VERTICAL);
-        for (String[] slot : SLOTS) slots.addView(slotRow(slot[0], slot[1], prefs));
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(slots);
-        root.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
-
-        LinearLayout buttons = new LinearLayout(this);
-        buttons.setGravity(Gravity.END);
-        Button share = button("Compartir registro", CARD);
-        share.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { shareLog(); } });
-        Button play = button("Jugar", ACCENT);
-        play.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { play(prefs); } });
-        buttons.addView(share);
-        buttons.addView(play);
-        root.addView(buttons);
-        setContentView(root);
-    }
-
-    private String minecraftStatus() {
-        try {
-            PackageInfo info = getPackageManager().getPackageInfo(LexApplication.MINECRAFT, 0);
-            return "Minecraft " + info.versionName + " instalado · panel: botón LeX o tecla L";
-        } catch (Exception missing) {
-            return "Instala Minecraft desde la Play Store para jugar con LeX.";
-        }
-    }
-
-    private View slotRow(final String slot, String label, final SharedPreferences prefs) {
-        LinearLayout row = new LinearLayout(this);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(12), dp(6), dp(12), dp(6));
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(CARD);
-        bg.setCornerRadius(dp(10));
-        row.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = dp(8);
-        row.setLayoutParams(lp);
-        TextView name = text(label, 16, Color.WHITE);
-        row.addView(name, new LinearLayout.LayoutParams(dp(120), ViewGroup.LayoutParams.WRAP_CONTENT));
-
-        final List<String> ids = new ArrayList<>();
-        List<String> names = new ArrayList<>();
-        ids.add(null);
-        names.add("Nada");
-        try {
-            JSONArray items = installer.catalog.getJSONArray("items");
-            for (int i = 0; i < items.length(); i++) {
-                JSONObject item = items.getJSONObject(i);
-                if (!item.getString("slot").equals(slot)) continue;
-                ids.add(item.getString("id"));
-                names.add(item.getString("name"));
-            }
-        } catch (Exception ignored) {
-            // sin catalogo: solo "Nada"
-        }
-        Spinner spinner = new Spinner(this);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names);
-        spinner.setAdapter(adapter);
-        String current = prefs.getString(slot, null);
-        int at = ids.indexOf(current);
-        spinner.setSelection(Math.max(0, at));
-        loadout.put(slot, at > 0 ? current : null);
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        web = new WebView(this);
+        web.setBackgroundColor(Color.rgb(10, 15, 26));
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        WebSettings settings = web.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setMediaPlaybackRequiresUserGesture(true);
+        web.addJavascriptInterface(new Bridge(), "LexNative");
+        web.setWebViewClient(new WebViewClient() {
             @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                loadout.put(slot, ids.get(position));
-                prefs.edit().putString(slot, ids.get(position)).apply();
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return asset(request.getUrl());
             }
 
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                return !request.getUrl().toString().startsWith(ORIGIN);
+            }
         });
-        row.addView(spinner, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        return row;
+        setContentView(web);
+        web.loadUrl(ORIGIN + "/ui/renderer/index.html");
     }
 
-    private void play(SharedPreferences prefs) {
-        status.setText("Preparando LeX…");
-        final Activity self = this;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (installer != null) installer.install(loadout);
-                    writeLoadout();
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (web != null) web.evaluateJavascript("window.__lexEvent && __lexEvent('resume', null)", null);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (web != null && web.canGoBack()) web.goBack();
+        else super.onBackPressed();
+    }
+
+    /** Los archivos de la pagina salen de los assets del APK, con su tipo. */
+    private WebResourceResponse asset(Uri url) {
+        if (!url.toString().startsWith(ORIGIN)) return null;
+        String path = url.getPath();
+        if (path == null || path.contains("..")) return null;
+        path = path.substring(1);
+        try {
+            InputStream in = getAssets().open(path);
+            return new WebResourceResponse(mime(path), mime(path).startsWith("text") ? "utf-8" : null, in);
+        } catch (Exception missing) {
+            WebResourceResponse none = new WebResourceResponse("text/plain", "utf-8", null);
+            none.setStatusCodeAndReasonPhrase(404, "No encontrado");
+            return none;
+        }
+    }
+
+    private static String mime(String path) {
+        if (path.endsWith(".html")) return "text/html";
+        if (path.endsWith(".mjs") || path.endsWith(".js")) return "text/javascript";
+        if (path.endsWith(".css")) return "text/css";
+        if (path.endsWith(".json")) return "application/json";
+        if (path.endsWith(".png")) return "image/png";
+        return "application/octet-stream";
+    }
+
+    /** Lo que la pagina llama como window.lex.*; cada llamada en el hilo de trabajo. */
+    final class Bridge {
+        @JavascriptInterface
+        public void call(final int id, final String name, final String args) {
+            worker.execute(new Runnable() {
+                @Override
+                public void run() {
+                    String result;
+                    try {
+                        Object value = handle(name, new JSONArray(args));
+                        result = value == null ? "null" : value instanceof String ? JSONObject.quote((String) value) : value.toString();
+                    } catch (Exception error) {
+                        LexLog.e("Fallo en " + name, error);
+                        String message = error.getMessage() != null ? error.getMessage() : error.toString();
+                        result = "{\"__error\":" + JSONObject.quote(message) + "}";
+                    }
+                    final String script = "__lexDone(" + id + ", " + JSONObject.quote(result) + ")";
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Intent game = new Intent().setClassName(self, "com.mojang.minecraftpe.MainActivity");
-                            game.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            LexLog.i("Arrancando Minecraft dentro de LeX");
-                            startActivity(game);
-                            status.setText(minecraftStatus());
-                        }
-                    });
-                } catch (final Exception error) {
-                    LexLog.e("No se pudo preparar el juego", error);
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            status.setText("Error al preparar el juego: " + error.getMessage());
+                            web.evaluateJavascript(script, null);
                         }
                     });
                 }
-            }
-        }).start();
+            });
+        }
     }
 
-    /** Lo que llevas puesto, para el panel nativo dentro del juego. */
-    private void writeLoadout() throws Exception {
-        JSONObject json = new JSONObject();
-        for (Map.Entry<String, String> e : loadout.entrySet()) json.put(e.getKey(), e.getValue() == null ? JSONObject.NULL : e.getValue());
-        try (FileWriter out = new FileWriter(new File(getFilesDir(), "loadout.json"))) {
-            out.write(json.toString(2));
+    private Object handle(String name, JSONArray args) throws Exception {
+        switch (name) {
+            case "status": return status();
+            case "snapshot": return snapshot();
+            case "files": return new JSONObject(installer.read("lex/files.json"));
+            case "loadout": return loadout();
+            case "saveLoadout": return saveLoadout(args.optJSONObject(0));
+            case "modules": return modules();
+            case "setModule": return setModule(args.getString(0), args.getBoolean(1));
+            case "skin":
+            case "freshSkin": return skin();
+            case "play": return play();
+            case "uninstall": return uninstall();
+            case "shareLog": runOnUiThread(new Runnable() { @Override public void run() { shareLog(); } }); return null;
+            case "pickSkin": runOnUiThread(new Runnable() { @Override public void run() { pickSkin(); } }); return null;
+            default: throw new Exception("Accion desconocida: " + name);
         }
+    }
+
+    private String minecraftVersion() {
+        try {
+            PackageInfo info = getPackageManager().getPackageInfo(LexApplication.MINECRAFT, 0);
+            return info.versionName;
+        } catch (Exception missing) {
+            return null;
+        }
+    }
+
+    private String lexVersion() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "?";
+        }
+    }
+
+    private JSONObject status() throws Exception {
+        String version = minecraftVersion();
+        JSONObject s = new JSONObject();
+        s.put("client", lexVersion());
+        s.put("installed", version != null);
+        s.put("version", version == null ? JSONObject.NULL : version);
+        s.put("running", false);
+        s.put("android", true);
+        s.put("note", version != null
+            ? "Minecraft " + version + ". En el juego, toca el botón LeX o pulsa L con teclado."
+            : "Instala Minecraft desde la Play Store para jugar con LeX.");
+        return s;
+    }
+
+    private JSONObject snapshot() throws Exception {
+        JSONObject s = status();
+        String version = minecraftVersion();
+        boolean pack = new File(getDataDir(), "games/com.mojang/development_resource_packs/LeX_Cosmetics/manifest.json").exists();
+        JSONArray rows = new JSONArray();
+        rows.put(row("Minecraft", version != null ? version : "No instalado", version != null));
+        rows.put(row("Dispositivo", Build.MANUFACTURER + " " + Build.MODEL + " · Android " + Build.VERSION.RELEASE, true));
+        rows.put(row("Arquitectura", Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "?", Build.SUPPORTED_ABIS.length > 0 && Build.SUPPORTED_ABIS[0].equals("arm64-v8a")));
+        rows.put(row("Cosméticos en el juego", pack ? "Preparados" : "Se preparan al pulsar Jugar", true));
+        rows.put(row("Versión de LeX", lexVersion(), true));
+        s.put("rows", rows);
+        return s;
+    }
+
+    private static JSONArray row(String key, String value, boolean ok) {
+        return new JSONArray().put(key).put(value).put(ok);
+    }
+
+    // ---------------------------------------------------------- equipamiento
+    private File loadoutFile() {
+        return new File(getFilesDir(), "loadout.json");
+    }
+
+    private JSONObject loadout() throws Exception {
+        File file = loadoutFile();
+        JSONObject saved = file.exists() ? new JSONObject(new String(readAll(new FileInputStream(file)), StandardCharsets.UTF_8)) : new JSONObject();
+        // Solo lo que existe en este APK.
+        JSONObject clean = new JSONObject();
+        Iterator<String> keys = saved.keys();
+        while (keys.hasNext()) {
+            String slot = keys.next();
+            String id = saved.optString(slot, null);
+            if (id != null && !saved.isNull(slot) && installer != null && installer.item(id) != null) clean.put(slot, id);
+        }
+        return clean;
+    }
+
+    private JSONObject saveLoadout(JSONObject value) throws Exception {
+        JSONObject clean = new JSONObject();
+        if (value != null) {
+            Iterator<String> keys = value.keys();
+            while (keys.hasNext()) {
+                String slot = keys.next();
+                if (value.isNull(slot)) continue;
+                String id = value.getString(slot);
+                if (installer != null && installer.item(id) != null) clean.put(slot, id);
+            }
+        }
+        write(loadoutFile(), clean.toString(2).getBytes(StandardCharsets.UTF_8));
+        return clean;
+    }
+
+    private Map<String, String> loadoutMap() throws Exception {
+        JSONObject json = loadout();
+        Map<String, String> out = new LinkedHashMap<>();
+        Iterator<String> keys = json.keys();
+        while (keys.hasNext()) {
+            String slot = keys.next();
+            out.put(slot, json.getString(slot));
+        }
+        return out;
+    }
+
+    // ---------------------------------------------------------- modulos
+    private File modulesFile() {
+        return new File(getFilesDir(), "android_modules.json");
+    }
+
+    private JSONArray modules() throws Exception {
+        File file = modulesFile();
+        JSONObject saved = file.exists() ? new JSONObject(new String(readAll(new FileInputStream(file)), StandardCharsets.UTF_8)) : new JSONObject();
+        JSONArray list = new JSONArray();
+        for (Object[] m : MODULES) {
+            String name = (String) m[0];
+            boolean available = (Boolean) m[3];
+            JSONObject o = new JSONObject();
+            o.put("name", name);
+            o.put("description", m[1]);
+            o.put("category", available ? "En pantalla" : "Próximamente");
+            o.put("enabled", available && saved.optBoolean(name, (Boolean) m[2]));
+            list.put(o);
+        }
+        return list;
+    }
+
+    private boolean setModule(String name, boolean on) throws Exception {
+        for (Object[] m : MODULES) {
+            if (!m[0].equals(name)) continue;
+            if (!(Boolean) m[3]) throw new Exception(name + " llegará pronto a Android");
+            File file = modulesFile();
+            JSONObject saved = file.exists() ? new JSONObject(new String(readAll(new FileInputStream(file)), StandardCharsets.UTF_8)) : new JSONObject();
+            saved.put(name, on);
+            write(file, saved.toString(2).getBytes(StandardCharsets.UTF_8));
+            return true;
+        }
+        throw new Exception("Módulo desconocido");
+    }
+
+    // ---------------------------------------------------------- skin
+    private File skinFile() {
+        return new File(getFilesDir(), "skin.png");
+    }
+
+    /** La skin elegida o, si no, la ultima que guardo el juego dentro de LeX. */
+    private String skin() throws Exception {
+        File chosen = skinFile();
+        File best = chosen.exists() ? chosen : null;
+        if (best == null && installer != null) {
+            long time = 0;
+            for (File dir : installer.gameDirs()) {
+                File[] list = dir == null ? null : new File(dir, "custom_skins").listFiles();
+                for (int i = 0; list != null && i < list.length; i++) {
+                    if (list[i].getName().endsWith(".png") && list[i].lastModified() > time) {
+                        time = list[i].lastModified();
+                        best = list[i];
+                    }
+                }
+            }
+        }
+        if (best == null) return null;
+        return "data:image/png;base64," + Base64.encodeToString(readAll(new FileInputStream(best)), Base64.NO_WRAP);
+    }
+
+    private void pickSkin() {
+        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        pick.addCategory(Intent.CATEGORY_OPENABLE);
+        pick.setType("image/png");
+        try {
+            startActivityForResult(pick, PICK_SKIN);
+        } catch (Exception error) {
+            LexLog.e("No se pudo abrir el selector", error);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request != PICK_SKIN || result != RESULT_OK || data == null || data.getData() == null) return;
+        final Uri uri = data.getData();
+        worker.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    byte[] png = readAll(getContentResolver().openInputStream(uri));
+                    if (png.length < 24) throw new Exception("La skin debe ser un PNG de 64x64");
+                    // 64x64 o 64x32 (cabecera PNG: ancho y alto en los bytes 16-23).
+                    int w = ((png[16] & 255) << 24) | ((png[17] & 255) << 16) | ((png[18] & 255) << 8) | (png[19] & 255);
+                    if (w != 64 && w != 128) throw new Exception("La skin debe ser un PNG de 64x64");
+                    write(skinFile(), png);
+                    final String url = "data:image/png;base64," + Base64.encodeToString(png, Base64.NO_WRAP);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            web.evaluateJavascript("__lexEvent('skin', " + JSONObject.quote(url) + ")", null);
+                        }
+                    });
+                } catch (Exception error) {
+                    LexLog.e("Skin no valida", error);
+                }
+            }
+        });
+    }
+
+    // ---------------------------------------------------------- jugar
+    private JSONObject play() throws Exception {
+        if (minecraftVersion() == null) throw new Exception("Instala Minecraft desde la Play Store primero.");
+        if (installer == null) throw new Exception("El APK de LeX está dañado: reinstálalo.");
+        installer.install(loadoutMap());
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Intent game = new Intent().setClassName(LauncherActivity.this, "com.mojang.minecraftpe.MainActivity");
+                game.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                LexLog.i("Arrancando Minecraft dentro de LeX");
+                startActivity(game);
+            }
+        });
+        return new JSONObject().put("ok", true).put("message", "Abriendo Minecraft con LeX…");
+    }
+
+    private JSONObject uninstall() throws Exception {
+        if (installer != null) installer.uninstall();
+        return new JSONObject().put("ok", true).put("message", "Cosméticos de LeX quitados del juego.");
     }
 
     private void shareLog() {
@@ -193,32 +406,20 @@ public class LauncherActivity extends Activity {
         startActivity(Intent.createChooser(send, "Compartir registro de LeX"));
     }
 
-    private TextView text(String value, int size, int color) {
-        TextView view = new TextView(this);
-        view.setText(value);
-        view.setTextSize(size);
-        view.setTextColor(color);
-        return view;
+    // ---------------------------------------------------------- archivos
+    static byte[] readAll(InputStream in) throws Exception {
+        try (InputStream input = in) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[65536];
+            for (int n; (n = input.read(buffer)) > 0; ) out.write(buffer, 0, n);
+            return out.toByteArray();
+        }
     }
 
-    private Button button(String label, int color) {
-        Button view = new Button(this);
-        view.setText(label);
-        view.setTextColor(Color.WHITE);
-        view.setAllCaps(false);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(color);
-        bg.setCornerRadius(dp(10));
-        view.setBackground(bg);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = dp(10);
-        lp.topMargin = dp(10);
-        view.setLayoutParams(lp);
-        view.setPadding(dp(22), dp(10), dp(22), dp(10));
-        return view;
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
+    static void write(File file, byte[] data) throws Exception {
+        file.getParentFile().mkdirs();
+        try (OutputStream out = new FileOutputStream(file)) {
+            out.write(data);
+        }
     }
 }
