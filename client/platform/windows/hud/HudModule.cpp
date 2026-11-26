@@ -201,7 +201,31 @@ void drawHud(bool editing, float uiScale) {
   }
   if (!editing) return;
 
-  if (dragging == nullptr && hovered != nullptr) {
+  // Boton para quitar un overlay: la X de su esquina (o Supr sobre el).
+  const float closeRadius = 9.0f * uiScale;
+  const auto closeCenter = [&](HudModule* hud) {
+    const ImVec2 p = hud->positionOn(screen);
+    return ImVec2(p.x + hud->lastSize().x + 2.0f, p.y - 2.0f);
+  };
+  HudModule* closing = nullptr;
+  if (dragging == nullptr && !ImGui::GetIO().WantCaptureMouse) {
+    for (const auto& module : manager.modules()) {
+      auto* hud = dynamic_cast<HudModule*>(module.get());
+      if (hud == nullptr || !hud->isEnabled() || !hud->visible()) continue;
+      const ImVec2 c = closeCenter(hud);
+      if ((mouse.x - c.x) * (mouse.x - c.x) + (mouse.y - c.y) * (mouse.y - c.y) <= closeRadius * closeRadius * 1.6f) closing = hud;
+    }
+  }
+  if (closing != nullptr && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+    closing->setEnabled(false);
+    return;
+  }
+  if (hovered != nullptr && dragging == nullptr && ImGui::IsKeyPressed(ImGuiKey_Delete, false)) {
+    hovered->setEnabled(false);
+    return;
+  }
+
+  if (dragging == nullptr && hovered != nullptr && closing == nullptr) {
     if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
       dragging = hovered;
       const ImVec2 p = hovered->positionOn(screen);
@@ -242,6 +266,14 @@ void drawHud(bool editing, float uiScale) {
     const bool hot = hud == hovered || hud == dragging;
     list.AddRect(ImVec2(p.x - 2, p.y - 2), ImVec2(q.x + 2, q.y + 2),
                  hot ? IM_COL32(96, 192, 255, 255) : IM_COL32(150, 190, 230, 90), 6.0f, 0, hot ? 2.0f : 1.0f);
+    {
+      const ImVec2 c = closeCenter(hud);
+      const bool over = hud == closing;
+      list.AddCircleFilled(c, closeRadius, over ? IM_COL32(230, 70, 80, 255) : IM_COL32(40, 50, 70, hot ? 240 : 170));
+      const float k = closeRadius * 0.42f;
+      list.AddLine(ImVec2(c.x - k, c.y - k), ImVec2(c.x + k, c.y + k), IM_COL32(255, 255, 255, 255), 2.0f * uiScale);
+      list.AddLine(ImVec2(c.x - k, c.y + k), ImVec2(c.x + k, c.y - k), IM_COL32(255, 255, 255, 255), 2.0f * uiScale);
+    }
     if (hot) {
       char text[96];
       std::snprintf(text, sizeof(text), "%s  %.0f%%", hud->name().c_str(), hud->scale() * 100.0f);

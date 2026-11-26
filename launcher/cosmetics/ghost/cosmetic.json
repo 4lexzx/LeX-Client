@@ -1,0 +1,66 @@
+{
+ "id": "ghost",
+ "slot": "pet",
+ "name": "Fantasma",
+ "scale": 0.6,
+ "offset": [
+  -18,
+  16,
+  2
+ ],
+ "sitAfter": 6,
+ "sleepAfter": 25,
+ "hiddenAtRest": [
+  "lids"
+ ],
+ "preview": "idle",
+ "states": {
+  "idle": [
+   "animation.ghost.idle"
+  ],
+  "walk": [
+   "animation.ghost.walk"
+  ],
+  "run": [
+   "animation.ghost.run"
+  ],
+  "fly": [
+   "animation.ghost.fly"
+  ],
+  "sit": [
+   "animation.ghost.sit"
+  ],
+  "sneak": [
+   "animation.ghost.sneak"
+  ],
+  "sleep": [
+   "animation.ghost.sleep"
+  ],
+  "hurt": [
+   "animation.ghost.hurt"
+  ],
+  "always": [
+   "animation.ghost.look"
+  ]
+ },
+ "variants": [
+  {
+   "key": "",
+   "name": "blanco"
+  }
+ ],
+ "particles": [
+  {
+   "name": "wisp",
+   "file": "particles/wisp.json",
+   "texture": "particles/wisp.png",
+   "frames": 8
+  },
+  {
+   "name": "zzz",
+   "file": "particles/zzz.json",
+   "texture": "particles/zzz.png",
+   "frames": 8
+  }
+ ]
+}

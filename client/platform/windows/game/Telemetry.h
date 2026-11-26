@@ -39,15 +39,26 @@ struct PeerHealth {
 };
 PeerHealth peerHealth();
 
+// Cuenta muertes de otros jugadores vistas cerca.
+unsigned int nearbyDeaths();
+// Bajas tuyas: muertes a tu lado justo despues de atacar. Llamar cada fotograma.
+void trackKills();
+unsigned int confirmedKills();
+unsigned long long lastKillTime();
+
 // Hay un mundo en pantalla. Sin D3D12 no hay telemetria: se asume que si.
 bool inWorld();
 void setTelemetryAvailable(bool available);
 // El HUD del juego (y por tanto su mira) se ha dibujado hace un instante.
 bool crosshairVisible();
 
-enum class Live { Atlas, Crosshair, Health, Trail = Health + 41, Count = Trail + 10 };  // Health + vida
+enum class Live { Atlas, Crosshair, Health, Estimate = Health + 41, Trail = Estimate + 41, HitColor = Trail + 6, FileParticle, Count = FileParticle + 8 };  // Health + vida
 constexpr int kHealthSteps = 41;
-constexpr unsigned kTrails = 10;
+constexpr unsigned kTrails = 6;  // canales de particulas
+// Particulas de cosmeticos por archivos: 512 x (64 + canal), 8 canales.
+constexpr int kFileParticleW = 512;
+constexpr int kFileParticleH = 64;
+constexpr unsigned kFileParticles = 8;
 // Textura que el juego esta usando ahora, o nullptr.
 ID3D12Resource* liveTexture(Live which);
 

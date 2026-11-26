@@ -17,6 +17,10 @@ class LiveTextures {
   void set(Live which, int width, int height, std::vector<std::uint8_t> rgba);
   void record(ID3D12Device* device, ID3D12GraphicsCommandList* list, std::uint64_t frame);
   void releaseGpu();
+  // Vuelve a pintar todo en el siguiente fotograma (p. ej. al entrar a un mundo).
+  void invalidate() {
+    for (Slot& slot : slots_) slot.painted = nullptr;
+  }
 
  private:
   struct Slot {

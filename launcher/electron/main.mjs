@@ -1,16 +1,27 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detect, inject, isRunning, launch } from './game.mjs';
-import { PRESETS, applyPreset, restore } from './optimizer.mjs';
+import { PRESETS, applyPreset, currentOptions, restore } from './optimizer.mjs';
 import { PACK_NAME, buildPack, readParticleIds, findSkin, readPlayerEntity, setGlobalPack, writeClientAssets, writeItemIcons, writePack } from './pack.mjs';
-import { cleanLoadout, find } from '../shared/cosmetics.mjs';
+import { vanillaPets } from './vanilla.mjs';
+import { cleanLoadout, find, registerFiles } from '../shared/cosmetics.mjs';
+import { loadFileCosmetics } from './filecosmetics.mjs';
 
 app.setAppUserModelId('com.lexclient.app');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
+// Cosmeticos por archivos: una carpeta rota no debe tumbar el launcher.
+let fileAssets = null;
+try {
+  fileAssets = loadFileCosmetics(root);
+  registerFiles(fileAssets.compiled);
+} catch (error) {
+  console.error('Cosmeticos por archivos:', error.message);
+}
 const nativeDir = app.isPackaged ? join(process.resourcesPath, 'native') : join(root, 'native');
 const appData = (!app.isPackaged && process.env.LEX_APPDATA) || app.getPath('appData');
 const dataDir = join(appData, 'lex-client');
@@ -55,16 +66,39 @@ function setModule(name, enabled) {
 const state = () => ({ preset: null, pending: null, ...readJson(statePath, {}) });
 const saveState = (patch) => writeJson(statePath, { ...state(), ...patch });
 
+// Detectar el juego tarda (PowerShell): se responde con lo ultimo conocido y se
+// refresca por detras.
+let known = null;
+const snapshot = () => ({
+  ...(known ?? state().game ?? { installed: false, version: null, dir: null, running: false, pending: true }),
+  native: existsSync(join(nativeDir, 'LeXClient.dll')) && existsSync(join(nativeDir, 'lex-injector.exe')),
+  ready: existsSync(join(packRoot, 'manifest.json')),
+  client: app.getVersion(),
+  selfTest: Boolean(state().selfTest),
+});
+// Modelos del juego para las mascotas: se leen una vez, sin parar la ventana.
+let vanillaReady = null;
+const vanilla = () => {
+  vanillaReady ??= (async () => {
+    const dir = state().game?.dir ?? (await detect()).dir;
+    await new Promise((r) => setTimeout(r, 30));
+    try {
+      return dir ? vanillaPets(dir) : { bones: [], images: new Map() };
+    } catch {
+      return { bones: [], images: new Map() };
+    }
+  })();
+  return vanillaReady;
+};
+
 async function status() {
   const [game, running] = await Promise.all([detect(), isRunning()]);
-  return {
-    ...game,
-    running,
-    native: existsSync(join(nativeDir, 'LeXClient.dll')) && existsSync(join(nativeDir, 'lex-injector.exe')),
-    ready: existsSync(join(packRoot, 'manifest.json')),
-    client: app.getVersion(),
-  };
+  known = { ...game, running };
+  if (JSON.stringify(state().game) !== JSON.stringify({ ...game, running: false })) saveState({ game: { ...game, running: false } });
+  return snapshot();
 }
+
+
 
 // Prepara todo lo que el juego necesita. Solo con Minecraft cerrado: al salir
 // reescribe sus propios ajustes.
@@ -80,16 +114,25 @@ export function prepare(gameDir) {
   const preset = PRESETS[state().preset];
   const previous = readJson(join(packRoot, 'manifest.json'), null)?.header?.version ?? [1, 0, 0];
   const version = [previous[0], previous[1], previous[2] + 1];
+  const pets = vanillaPets(gameDir);
+  // Equipamiento al dia (nombres antiguos -> nuevos) para el pack y para la DLL.
+  const loadout = cleanLoadout(readJson(loadoutPath, {}));
+  writeJson(loadoutPath, loadout);
   writePack(packRoot, buildPack(readPlayerEntity(gameDir), {
     version,
     icon: readFileSync(join(root, 'renderer', 'logo-mark.png')),
     disabledParticles: Boolean(preset?.particles),
     particleIds: preset?.particles ? readParticleIds(gameDir) : [],
     crosshair: readFileSync(join(root, 'assets', 'cosmetics', 'crosshair.png')),
-    healthOnSelf: process.argv.includes('--health-on-self'), // solo para pruebas sin otro jugador
+    extraBones: pets.bones,
+    // Animaciones de baja y muerte: la elegida se fija en el pack.
+    loadout,
+    fxTextures: Object.fromEntries(existsSync(join(root, 'assets', 'fx')) ? readdirSync(join(root, 'assets', 'fx')).filter((n) => n.endsWith('.png')).map((n) => [n.slice(0, -4), readFileSync(join(root, 'assets', 'fx', n))]) : []),
+    // Modo prueba: vida, golpes y kills tambien sobre ti, para verlos sin otro jugador.
+    healthOnSelf: process.argv.includes('--health-on-self') || Boolean(state().selfTest),
   }));
   setGlobalPack(usersDir, version);
-  writeClientAssets(join(root, 'assets', 'cosmetics'), dataDir);
+  writeClientAssets(root, dataDir, pets, fileAssets);
   writeItemIcons(gameDir, usersDir, dataDir);
   const skin = findSkin(usersDir);
   if (skin) copyFileSync(skin, join(dataDir, 'skin.png'));
@@ -142,18 +185,46 @@ const handlers = {
     writeJson(loadoutPath, clean);
     return clean;
   },
-  texture: (id) => {
+  snapshot,
+  files: () => (fileAssets ? { items: fileAssets.compiled.items, bones: fileAssets.compiled.bones, animations: {}, controllers: {}, entity: { animations: {}, animate: [], particles: {} }, particles: [] } : null),
+  'selftest:set': (on) => {
+    saveState({ selfTest: Boolean(on) });
+    return snapshot();
+  },
+  models: async () => (await vanilla()).bones,
+  available: async () => [...(await vanilla()).images.keys()],
+  texture: async (id) => {
     const item = find(id);
     if (!item) throw new Error('Cosmético desconocido');
-    return `data:image/png;base64,${readFileSync(join(root, 'assets', 'cosmetics', `${item.id}.png`)).toString('base64')}`;
+    const game = item.file && fileAssets ? fileAssets.texture(item) : item.source ? (await vanilla()).images.get(id) : null;
+    const body = game ?? await readFile(join(root, 'assets', 'cosmetics', `${item.geo === 'trail' ? `trail-${item.art}` : id}.png`));
+    return `data:image/png;base64,${body.toString('base64')}`;
   },
-  skin: () => {
+  icon: async (name) => {
+    if (!/^[a-z0-9-]+$/.test(name)) return null;
+    try {
+      return `data:image/png;base64,${(await readFile(join(root, 'assets', 'icons', `${name}.png`))).toString('base64')}`;
+    } catch {
+      return null;
+    }
+  },
+  skin: async () => {
+    const saved = join(dataDir, 'skin.png');
+    const path = existsSync(saved) ? saved : findSkin(usersDir);
+    return path ? `data:image/png;base64,${(await readFile(path)).toString('base64')}` : null;
+  },
+  'skin:fresh': async () => {
     const path = findSkin(usersDir);
-    return path ? `data:image/png;base64,${readFileSync(path).toString('base64')}` : null;
+    if (!path) return null;
+    mkdirSync(dataDir, { recursive: true });
+    copyFileSync(path, join(dataDir, 'skin.png'));
+    return `data:image/png;base64,${(await readFile(path)).toString('base64')}`;
   },
   optimizer: () => ({
     presets: Object.entries(PRESETS).map(([id, p]) => ({ id, label: p.label, description: p.description })),
     ...state(),
+    current: currentOptions(usersDir),
+    ingame: readJson(configPath, {}).modules?.Optimizador?.enabled ?? false,
   }),
   'optimizer:apply': optimize,
   uninstall: async () => {
@@ -180,8 +251,10 @@ function createWindow() {
     title: 'LeX Client',
     autoHideMenuBar: true,
     icon: join(root, 'renderer', 'icon.ico'),
+    show: false,
     webPreferences: { preload: join(here, 'preload.cjs') },
   });
+  win.once('ready-to-show', () => win.show());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (event) => event.preventDefault());
   win.loadFile(join(root, 'renderer', 'index.html'));
@@ -192,10 +265,23 @@ function createWindow() {
 async function shots(win, folder) {
   win.webContents.on('console-message', (e) => console.log('[renderer]', e.message));
   await new Promise((r) => win.webContents.once('did-finish-load', r));
+  await new Promise((r) => setTimeout(r, 4000));
   for (const page of ['play', 'modules', 'cosmetics', 'optimizer', 'settings']) {
     await win.webContents.executeJavaScript(`document.querySelector('[data-page="${page}"]').click()`);
     await new Promise((r) => setTimeout(r, 2500));
     writeFileSync(join(folder, `launcher_${page}.png`), (await win.webContents.capturePage()).toPNG());
+    if (page === 'cosmetics') {
+      // Tambien cada ranura (mascotas, golpes...) para revisar sus vistas previas.
+      for (const tab of (process.env.LEX_SHOT_TABS ?? '').split(',').filter(Boolean)) {
+        await win.webContents.executeJavaScript(`[...document.querySelectorAll('button')].find((b) => b.textContent.trim() === ${JSON.stringify(tab)})?.click()`);
+        await win.webContents.executeJavaScript(`document.querySelectorAll('*').forEach((e) => { e.scrollTop = 0; })`);
+        await new Promise((r) => setTimeout(r, 3000));
+        writeFileSync(join(folder, `launcher_${tab}.png`), (await win.webContents.capturePage()).toPNG());
+        await win.webContents.executeJavaScript(`(() => { const s = [...document.querySelectorAll('*')].find((e) => e.scrollHeight > e.clientHeight + 40 && getComputedStyle(e).overflowY !== 'visible'); if (s) s.scrollTop = 99999; })()`);
+        await new Promise((r) => setTimeout(r, 2000));
+        writeFileSync(join(folder, `launcher_${tab}_2.png`), (await win.webContents.capturePage()).toPNG());
+      }
+    }
   }
   app.quit();
 }
@@ -221,6 +307,8 @@ if (process.argv.includes('--prepare')) {
   app.whenReady().then(() => {
     for (const [name, fn] of Object.entries(handlers)) ipcMain.handle(name, (_event, ...args) => fn(...args));
     const win = createWindow();
+    status();
+    setTimeout(vanilla, 600);
     if (process.env.LEX_SHOTS && !app.isPackaged) shots(win, process.env.LEX_SHOTS);
   });
 }

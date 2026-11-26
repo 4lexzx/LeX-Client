@@ -1,0 +1,71 @@
+{
+ "id": "cat",
+ "slot": "pet",
+ "name": "Gato",
+ "scale": 0.5,
+ "offset": [
+  -16,
+  0,
+  4
+ ],
+ "sitAfter": 4,
+ "sleepAfter": 20,
+ "hiddenAtRest": [
+  "lids"
+ ],
+ "preview": "walk",
+ "states": {
+  "idle": [
+   "animation.cat.idle"
+  ],
+  "walk": [
+   "animation.cat.walk"
+  ],
+  "run": [
+   "animation.cat.run"
+  ],
+  "fly": [
+   "animation.cat.fly"
+  ],
+  "sit": [
+   "animation.cat.sit"
+  ],
+  "sneak": [
+   "animation.cat.sneak"
+  ],
+  "sleep": [
+   "animation.cat.sleep"
+  ],
+  "hurt": [
+   "animation.cat.hurt"
+  ],
+  "always": [
+   "animation.cat.look"
+  ]
+ },
+ "variants": [
+  {
+   "key": "",
+   "name": "calicó"
+  },
+  {
+   "key": "orange",
+   "name": "naranja atigrado",
+   "texture": "texture_orange.png"
+  }
+ ],
+ "particles": [
+  {
+   "name": "zzz",
+   "file": "particles/zzz.json",
+   "texture": "particles/zzz.png",
+   "frames": 8
+  },
+  {
+   "name": "hearts",
+   "file": "particles/hearts.json",
+   "texture": "particles/hearts.png",
+   "frames": 8
+  }
+ ]
+}

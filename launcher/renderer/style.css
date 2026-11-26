@@ -73,14 +73,25 @@ dd.bad { color: var(--warn); }
 
 #stage { position: relative; overflow: hidden; cursor: grab; touch-action: none; }
 #stage:active { cursor: grabbing; }
-#scene { position: absolute; left: 50%; top: 50%; perspective: 1400px; }
-#model { transform-style: preserve-3d; position: absolute; }
-#model .bone { position: absolute; transform-style: preserve-3d; }
-#model .face.flat { backface-visibility: visible !important; }
-#model .face { position: absolute; background-repeat: no-repeat; backface-visibility: hidden; transform-origin: 0 0; }
-.pixel .face { image-rendering: pixelated; }
-#ground { position: absolute; left: 50%; top: calc(50% + 148px); width: 190px; height: 34px; transform: translateX(-50%); border-radius: 50%; background: #03060cb0; filter: blur(12px); z-index: 0; }
-#scene { z-index: 1; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; }
+.card3d { width: 172px; height: 190px; max-width: 100%; display: block; margin-bottom: 4px; }
+.mod-icon { width: 50px; height: 50px; margin: 10px 0 14px; opacity: .55; transition: opacity .15s; }
+.tile[aria-pressed="true"] .mod-icon { opacity: 1; }
+.tile:has(.mod-icon) strong { padding-bottom: 16px; }
+.tile:has(.card3d) { padding-top: 8px; }
+.tile:has(.card3d) strong { padding-bottom: 10px; }
+.tile:has(.card3d) .bar { background: #2c3c58; }
+.tile:has(.card3d)[aria-pressed="true"] .bar { background: #1f8f4c; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 20px; }
+.tabs button { padding: 8px 15px; border-radius: 9px; background: var(--panel); color: var(--muted); font-family: Bahnschrift, "Segoe UI", sans-serif; }
+.tabs button:hover { background: var(--panel-hot); }
+.tabs button[aria-selected="true"] { background: var(--line); color: var(--text); }
+.applied { display: flex; flex-direction: column; gap: 2px; padding: 16px 20px; margin: 16px 0 20px; border-radius: 12px; background: #1f8f4c26; border: 1px solid #1f8f4c; }
+.applied strong { font: 600 19px Bahnschrift, "Segoe UI", sans-serif; }
+.applied span { color: var(--muted); }
+.applied.none { background: var(--panel); border-color: var(--line); }
+dl.now { grid-template-columns: auto 1fr auto 1fr; margin: 8px 0 24px; }
+dd.good { color: #58cf87; }
 
 #toast { position: fixed; left: 32px; bottom: 28px; max-width: 520px; padding: 13px 18px; border-radius: 10px; background: #1f2d45; border: 1px solid var(--line); opacity: 0; transform: translateY(10px); transition: .2s; pointer-events: none; }
 #toast.show { opacity: 1; transform: none; }

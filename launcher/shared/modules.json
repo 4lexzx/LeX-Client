@@ -79,8 +79,8 @@
   },
   {
     "category": "Visual",
-    "description": "Vida sobre otros jugadores, nunca criaturas",
-    "enabled": false,
+    "description": "Vida sobre el nombre de otros jugadores",
+    "enabled": true,
     "name": "Vida de jugadores"
   },
   {
@@ -139,6 +139,12 @@
   },
   {
     "category": "Visual",
+    "description": "Color de los jugadores al recibir daño",
+    "enabled": true,
+    "name": "Color de golpe"
+  },
+  {
+    "category": "Visual",
     "description": "Aspa en la mira cuando tu golpe conecta",
     "enabled": false,
     "name": "Marcador de golpe"
@@ -172,6 +178,12 @@
     "description": "Sin distorsión por náusea o portales",
     "enabled": false,
     "name": "Visión clara"
+  },
+  {
+    "category": "HUD",
+    "description": "Bajas de la partida en servidores; vuelve a cero al morir o cambiar de partida",
+    "enabled": true,
+    "name": "Kills"
   },
   {
     "category": "HUD",

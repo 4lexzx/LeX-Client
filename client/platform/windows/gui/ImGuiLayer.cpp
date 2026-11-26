@@ -13,6 +13,7 @@
 #include "platform/windows/gui/ClickGuiRenderer.h"
 #include "platform/windows/game/Cosmetics.h"
 #include "platform/windows/game/LiveTextures.h"
+#include "platform/windows/game/Telemetry.h"
 #include "platform/windows/gui/Preview.h"
 #include "platform/windows/gui/IconAtlas.h"
 #include "platform/windows/gui/TextureStore.h"
@@ -31,7 +32,7 @@ std::atomic<ID3D12CommandQueue*> ImGuiLayer::gameQueue_{nullptr};
 namespace {
 
 // Reparto del heap: 0 fuente, 1.. iconos y despues imagenes.
-constexpr UINT kHeapSize = 256;
+constexpr UINT kHeapSize = 512;
 constexpr UINT kFirstImage = 1 + IconAtlas::kIconCount;
 
 template <typename T>
@@ -196,6 +197,13 @@ void ImGuiLayer::handleInput() {
   // Asi la L nunca se confunde con una letra del chat o de un cuadro de texto.
   const ULONGLONG clock = GetTickCount64();
   if (input.pressed(VK_ESCAPE)) escapeAt_ = clock;
+  if (!wasOpen) {
+    // En Bedrock el cursor puede seguir oculto con el chat abierto: se sigue
+    // por las teclas que lo abren y lo cierran.
+    if (chatOpen_ && (input.pressed(VK_ESCAPE) || input.pressed(VK_RETURN) || (input.gameplay() && input.pressed(VK_LBUTTON)))) chatOpen_ = false;
+    else if (!chatOpen_ && input.gameplay() && (input.pressed('T') || input.pressed(VK_RETURN) || input.pressed(VK_OEM_2) || input.pressed(VK_DIVIDE))) chatOpen_ = true;
+  }
+  ImGuiLayer::chatOpen = chatOpen_;
   if (!wasOpen && closingKey_ == 0) {
     if (input.gameplay()) paused_ = false;
     else if (wasGameplay_) paused_ = clock - escapeAt_ < 700;
@@ -213,7 +221,7 @@ void ImGuiLayer::handleInput() {
       }
     }
   } else if (input.pressed(model_->theme().menuKey.key) &&
-             (model_->isOpen() ? !ImGui::GetIO().WantTextInput : input.gameplay() || (paused_ && input.focused()))) {
+             (model_->isOpen() ? !ImGui::GetIO().WantTextInput : !chatOpen_ && (input.gameplay() || (paused_ && input.focused())))) {
     // Con el chat o un cuadro de texto abierto la tecla es solo una letra.
     gui.setHudEditing(false);
     model_->toggle();
@@ -221,7 +229,7 @@ void ImGuiLayer::handleInput() {
     if (gui.hudEditing()) gui.setHudEditing(false);
     else if (model_->settingsOpen()) model_->closeSettings();
     else model_->toggle();
-  } else if (!model_->isOpen() && input.gameplay()) {
+  } else if (!model_->isOpen() && input.gameplay() && !chatOpen_) {
     for (const auto& module : core::module::ModuleManager::instance().modules()) {
       const auto& bind = module->keybind();
       if (bind.key != 0 && input.pressed(bind.key)) module->setEnabled(!module->isEnabled());
@@ -306,6 +314,17 @@ void ImGuiLayer::renderDx12(IDXGISwapChain* swapChain) {
   }
 
   TextureStore::instance().flushDx12(d3d12Device_, commandList_, srvHeap_, kFirstImage, kHeapSize - kFirstImage);
+  {
+    // Al volver a un mundo el juego puede recargar las texturas del pack con
+    // su contenido vacio sin cambiar el recurso: se repinta todo una vez.
+    static bool wasInWorld = false;
+    const bool inWorld = game::inWorld();
+    if (inWorld && !wasInWorld) {
+      game::LiveTextures::instance().invalidate();
+      game::Cosmetics::instance().invalidate();
+    }
+    wasInWorld = inWorld;
+  }
   game::Cosmetics::instance().record(d3d12Device_, commandList_, index % frames_.size());
   game::LiveTextures::instance().record(d3d12Device_, commandList_, ++frameNumber_);
 
@@ -362,7 +381,7 @@ LRESULT CALLBACK ImGuiLayer::wndProc(HWND window, UINT message, WPARAM w, LPARAM
     key = static_cast<int>(MapVirtualKeyW(scan | extended, MAPVK_VSC_TO_VK_EX));
   }
   const bool ownKey = key != 0 && self->model_ != nullptr && key == self->model_->theme().menuKey.key &&
-                      (mouse_guard::menuOpen() || Input::instance().gameplay() || self->paused_);
+                      (mouse_guard::menuOpen() || ((Input::instance().gameplay() || self->paused_) && !chatOpen));
   if (mouse_guard::menuOpen()) {
     ImGui_ImplWin32_WndProcHandler(window, message, w, l);
     const bool mouse = (message >= WM_MOUSEFIRST && message <= WM_MOUSELAST) || (message >= 0x0241 && message <= 0x0257);  // y WM_POINTER*

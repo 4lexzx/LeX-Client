@@ -31,7 +31,7 @@ export const CHANNELS = [
   HEADING, // 33
   ...digits(SPEED, 3), // 34-36
   'query.is_carrying_block ? 1 : 0', // 37
-  'query.hurt_time > 0 ? 1 : 0', // 38
+  'variable.lex_calm < 0.5 ? 1 : 0', // 38: recibes dano (sube hurt_time o baja tu vida)
 ];
 
 // Cada control de render lleva GROUPS canales y publica uno por turno.
@@ -44,9 +44,11 @@ export const COUNT_W = 103; // objetos en la mano, 0-64
 export const HUD_W = 104; // marcador: el HUD del juego esta en pantalla
 export const REACH_W = 105; // jugador golpeado: distancia * 10, 0-79
 export const PEER_W = 106; // vida que el juego conoce de otro jugador, 0-40
+export const KILL_W = 107; // muerte de otro jugador cerca
+export const HIT_COLOR = 71; // cuadrada: color de golpe
 export const COUNTS = 65;
 export const REACHES = 80;
 
 // Texturas que la DLL repinta en vivo.
 export const CROSSHAIR = 67; // cuadrada
-export const HEALTH = { w: 131, rows: 41, rowH: 36 }; // una textura por valor: ancho 131 + vida
+export const HEALTH = { w: 131, estimate: 181, rows: 41, rowH: 36 }; // ancho 131 + vida real, 181 + vida estimada

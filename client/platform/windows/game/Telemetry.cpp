@@ -5,6 +5,8 @@
 
 #include <array>
 
+#include "platform/windows/input/Input.h"
+
 namespace lex::platform::windows::game {
 namespace {
 
@@ -18,13 +20,16 @@ constexpr UINT kCountW = 103;
 constexpr UINT kHudW = 104;
 constexpr UINT kReachW = 105;
 constexpr UINT kPeerW = 106;
+constexpr UINT kKillW = 107;
+constexpr UINT kEstimateW = 181;
 constexpr UINT kReaches = 80;
 constexpr UINT kCounts = 65;
 
 struct LiveSpec {
   UINT w, h;
 };
-constexpr LiveSpec kLive[] = {{161 * 12, 83 * 12}, {67, 67}};
+constexpr LiveSpec kLive[] = {{161 * 12, 184 * 12}, {67, 67}};
+constexpr UINT kHitColor = 71;
 constexpr UINT kHealthW = 131;
 constexpr UINT kHealthH = 36;
 constexpr UINT kTrailW = 264;
@@ -45,6 +50,11 @@ std::atomic<bool> g_available{false};
 std::atomic<int> g_peerMin{-1};
 std::atomic<int> g_peerMax{-1};
 std::atomic<ULONGLONG> g_peerSeen{0};
+std::atomic<ULONGLONG> g_deathSeen{0};
+std::atomic<unsigned> g_deaths{0};
+std::atomic<int> g_deathDistance{99};
+std::atomic<unsigned> g_kills{0};
+std::atomic<ULONGLONG> g_killTime{0};
 
 struct LiveSlot {
   std::atomic<ID3D12Resource*> resource{nullptr};
@@ -72,7 +82,7 @@ void note(ID3D12Resource* resource) {
   if (w >= kBaseW && w < kBaseW + kChannels && h >= kBaseH && h < kBaseH + kValues) {
     g_values[w - kBaseW].store(static_cast<int>(h - kBaseH), std::memory_order_relaxed);
     g_seen.store(GetTickCount64(), std::memory_order_relaxed);
-  } else if (w >= kCountW && w <= kPeerW && h >= kExtraH && h < kExtraH + kReaches) {
+  } else if (w >= kCountW && w <= kKillW && h >= kExtraH && h < kExtraH + kReaches) {
     const ULONGLONG now = GetTickCount64();
     const int value = static_cast<int>(h - kExtraH);
     if (w == kCountW && value < static_cast<int>(kCounts)) {
@@ -80,6 +90,15 @@ void note(ID3D12Resource* resource) {
       g_countSeen.store(now, std::memory_order_relaxed);
     } else if (w == kHudW) {
       g_hudSeen.store(now, std::memory_order_relaxed);
+    } else if (w == kKillW) {
+      // La animacion de muerte dura varios fotogramas: solo cuenta el primero.
+      const ULONGLONG before = g_deathSeen.exchange(now);
+      if (now - before > 1200) {
+        g_deathDistance.store(value);
+        g_deaths.fetch_add(1);
+      } else if (value < g_deathDistance.load()) {
+        g_deathDistance.store(value);
+      }
     } else if (w == kPeerW) {
       const ULONGLONG before = g_peerSeen.exchange(now);
       if (before == 0 || now - before > 10000) {  // otro servidor: se empieza de cero
@@ -104,6 +123,13 @@ void note(ID3D12Resource* resource) {
     if (w == kTrailW && h >= kTrailH && h < kTrailH + kTrails) {
       noteLive(static_cast<std::size_t>(Live::Trail) + (h - kTrailH), resource, GetTickCount64());
     }
+    if (w == kHitColor && h == kHitColor) noteLive(static_cast<std::size_t>(Live::HitColor), resource, GetTickCount64());
+    if (w == static_cast<UINT>(kFileParticleW) && h >= static_cast<UINT>(kFileParticleH) && h < kFileParticleH + kFileParticles) {
+      noteLive(static_cast<std::size_t>(Live::FileParticle) + (h - kFileParticleH), resource, GetTickCount64());
+    }
+    if (h == kHealthH && w >= kEstimateW && w < kEstimateW + kHealthSteps) {
+      noteLive(static_cast<std::size_t>(Live::Estimate) + (w - kEstimateW), resource, GetTickCount64());
+    }
     if (h == kHealthH && w >= kHealthW && w < kHealthW + kHealthSteps) {
       noteLive(static_cast<std::size_t>(Live::Health) + (w - kHealthW), resource, GetTickCount64());
     }
@@ -111,7 +137,8 @@ void note(ID3D12Resource* resource) {
 }
 
 void STDMETHODCALLTYPE srvDetour(ID3D12Device* self, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc, D3D12_CPU_DESCRIPTOR_HANDLE handle) {
-  if (resource != nullptr) note(resource);
+  // Las texturas de LeX son RGBA de 8 bits: el resto se descarta sin consultarlo.
+  if (resource != nullptr && (desc == nullptr || (desc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2D && desc->Format >= DXGI_FORMAT_R8G8B8A8_TYPELESS && desc->Format <= DXGI_FORMAT_R8G8B8A8_UNORM_SRGB))) note(resource);
   g_srv(self, resource, desc, handle);
 }
 
@@ -147,6 +174,36 @@ PlayerData playerData() {
   return data;
 }
 
+unsigned int nearbyDeaths() { return g_deaths.load(); }
+
+// Una muerte cuenta como tuya si fue a tu lado y acababas de golpear o atacar.
+void trackKills() {
+  static unsigned seen = ~0u;
+  static unsigned hitSerial = 0;
+  static ULONGLONG mine = 0;
+  const ULONGLONG now = GetTickCount64();
+  const unsigned serial = g_hitSerial.load();
+  if (serial != hitSerial) {
+    hitSerial = serial;
+    mine = now;
+  }
+  const ULONGLONG click = Input::instance().lastLeftClick();
+  const unsigned deaths = g_deaths.load();
+  if (deaths == seen) return;
+  if (seen != ~0u && now - g_deathSeen.load() < 400) {
+    // La distancia llega en los fotogramas siguientes: se espera un poco.
+    const bool close = g_deathDistance.load() <= 6;
+    const bool attacked = (mine != 0 && now - mine < 6000) || (click != 0 && now - click < 2500);
+    if (close && attacked) {
+      g_kills.fetch_add(1);
+      g_killTime.store(now);
+    }
+  }
+  seen = deaths;
+}
+unsigned int confirmedKills() { return g_kills.load(); }
+unsigned long long lastKillTime() { return g_killTime.load(); }
+
 PeerHealth peerHealth() {
   PeerHealth out;
   out.seen = fresh(g_peerSeen.load(), 10000);
@@ -164,7 +221,9 @@ Hit lastHit() {
 }
 
 void setTelemetryAvailable(bool available) { g_available.store(available); }
-bool inWorld() { return !g_available.load() || fresh(g_seen.load(), 1500); }
+// Las senales del jugador desaparecen si un mapa o servidor trae su propio
+// player.entity.json; el marcador del HUD (interfaz, no jugador) sigue llegando.
+bool inWorld() { return !g_available.load() || fresh(g_seen.load(), 1500) || fresh(g_hudSeen.load(), 1500); }
 bool crosshairVisible() { return fresh(g_live[static_cast<std::size_t>(Live::Crosshair)].seen.load(), 150); }
 
 ID3D12Resource* liveTexture(Live which) {

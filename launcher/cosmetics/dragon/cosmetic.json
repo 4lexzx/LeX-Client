@@ -1,0 +1,70 @@
+{
+ "id": "dragon",
+ "slot": "pet",
+ "name": "Dragón",
+ "scale": 0.4,
+ "offset": [
+  -20,
+  18,
+  2
+ ],
+ "sitAfter": 6,
+ "sleepAfter": 25,
+ "breathEvery": 20,
+ "breathTime": 2.4,
+ "hiddenAtRest": [
+  "lids"
+ ],
+ "preview": "idle",
+ "states": {
+  "idle": [
+   "animation.dragon.idle"
+  ],
+  "walk": [
+   "animation.dragon.walk"
+  ],
+  "run": [
+   "animation.dragon.run"
+  ],
+  "fly": [
+   "animation.dragon.fly"
+  ],
+  "sit": [
+   "animation.dragon.sit"
+  ],
+  "sneak": [
+   "animation.dragon.sneak"
+  ],
+  "sleep": [
+   "animation.dragon.sleep"
+  ],
+  "hurt": [
+   "animation.dragon.hurt"
+  ],
+  "breath": [
+   "animation.dragon.breath"
+  ],
+  "always": [
+   "animation.dragon.look"
+  ]
+ },
+ "variants": [
+  {
+   "key": "",
+   "name": "rojo"
+  },
+  {
+   "key": "black",
+   "name": "negro",
+   "texture": "texture_black.png"
+  }
+ ],
+ "particles": [
+  {
+   "name": "breath",
+   "file": "particles/breath.json",
+   "texture": "particles/breath.png",
+   "frames": 8
+  }
+ ]
+}

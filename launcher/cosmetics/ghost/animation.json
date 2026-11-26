@@ -1,0 +1,1046 @@
+{
+ "format_version": "1.8.0",
+ "animations": {
+  "animation.ghost.look": {
+   "loop": true,
+   "bones": {
+    "body": {
+     "rotation": [
+      "math.clamp(query.target_x_rotation, -30, 30) * 0.3",
+      "math.clamp(query.target_y_rotation, -60, 60) * 0.5",
+      0
+     ]
+    }
+   }
+  },
+  "animation.ghost.idle": {
+   "loop": true,
+   "animation_length": 8,
+   "bones": {
+    "root": {
+     "position": [
+      0,
+      "0 + math.sin(query.life_time * 100 - 0) * 1.5",
+      0
+     ],
+     "rotation": [
+      0,
+      "math.clamp((math.mod(query.anim_time, 8) - 6.2) * 400, 0, 360)",
+      "0 + math.sin(query.life_time * 60 - 0) * 5"
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 0) * 14",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 70) * 14",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 140) * 14",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 210) * 14",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 60) * 18.2",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 130) * 18.2",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 200) * 18.2",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 200 - 270) * 18.2",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 120 - 0) * 20"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 120 - 0) * 20)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 120 - 50) * 20"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 120 - 50) * 20)"
+     ]
+    },
+    "lids": {
+     "scale": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "3.50": [
+       0,
+       0,
+       0
+      ],
+      "3.58": [
+       1,
+       1,
+       1
+      ],
+      "3.70": [
+       1,
+       1,
+       1
+      ],
+      "3.78": [
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   },
+   "particle_effects": {
+    "1.0": {
+     "effect": "wisp",
+     "locator": "wisp"
+    },
+    "5.0": {
+     "effect": "wisp",
+     "locator": "wisp"
+    }
+   }
+  },
+  "animation.ghost.walk": {
+   "loop": true,
+   "animation_length": 8,
+   "bones": {
+    "root": {
+     "position": [
+      0,
+      "0 + math.sin(query.life_time * 160 - 0) * 1",
+      0
+     ],
+     "rotation": [
+      16,
+      0,
+      "0 + math.sin(query.life_time * 90 - 0) * 4"
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "28 + math.sin(query.life_time * 320 - 0) * 10",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "28 + math.sin(query.life_time * 320 - 70) * 10",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "28 + math.sin(query.life_time * 320 - 140) * 10",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "28 + math.sin(query.life_time * 320 - 210) * 10",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 320 - 60) * 13.0",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 320 - 130) * 13.0",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 320 - 200) * 13.0",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 320 - 270) * 13.0",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "30 + math.sin(query.life_time * 200 - 0) * 10"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(30 + math.sin(query.life_time * 200 - 0) * 10)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 200 - 50) * 10"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 200 - 50) * 10)"
+     ]
+    },
+    "lids": {
+     "scale": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "3.50": [
+       0,
+       0,
+       0
+      ],
+      "3.58": [
+       1,
+       1,
+       1
+      ],
+      "3.70": [
+       1,
+       1,
+       1
+      ],
+      "3.78": [
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "animation.ghost.run": {
+   "loop": true,
+   "animation_length": 8,
+   "bones": {
+    "root": {
+     "position": [
+      0,
+      "0 + math.sin(query.life_time * 200 - 0) * 1",
+      0
+     ],
+     "rotation": [
+      26,
+      0,
+      "0 + math.sin(query.life_time * 120 - 0) * 5"
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "40 + math.sin(query.life_time * 420 - 0) * 8",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "40 + math.sin(query.life_time * 420 - 70) * 8",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "40 + math.sin(query.life_time * 420 - 140) * 8",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "40 + math.sin(query.life_time * 420 - 210) * 8",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 420 - 60) * 10.4",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 420 - 130) * 10.4",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 420 - 200) * 10.4",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 420 - 270) * 10.4",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "50 + math.sin(query.life_time * 300 - 0) * 10"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(50 + math.sin(query.life_time * 300 - 0) * 10)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 300 - 50) * 10"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 300 - 50) * 10)"
+     ]
+    },
+    "lids": {
+     "scale": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "3.50": [
+       0,
+       0,
+       0
+      ],
+      "3.58": [
+       1,
+       1,
+       1
+      ],
+      "3.70": [
+       1,
+       1,
+       1
+      ],
+      "3.78": [
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "animation.ghost.fly": {
+   "loop": true,
+   "animation_length": 8,
+   "bones": {
+    "root": {
+     "position": [
+      0,
+      "0 + math.sin(query.life_time * 200 - 0) * 2",
+      0
+     ],
+     "rotation": [
+      6,
+      "query.anim_time * 360",
+      0
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "10 + math.sin(query.life_time * 380 - 0) * 20",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "10 + math.sin(query.life_time * 380 - 70) * 20",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "10 + math.sin(query.life_time * 380 - 140) * 20",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "10 + math.sin(query.life_time * 380 - 210) * 20",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 380 - 60) * 26.0",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 380 - 130) * 26.0",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 380 - 200) * 26.0",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 380 - 270) * 26.0",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "70 + math.sin(query.life_time * 300 - 0) * 10"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(70 + math.sin(query.life_time * 300 - 0) * 10)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 300 - 50) * 10"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 300 - 50) * 10)"
+     ]
+    },
+    "lids": {
+     "scale": [
+      0,
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "animation.ghost.sit": {
+   "loop": true,
+   "animation_length": 8,
+   "bones": {
+    "root": {
+     "position": [
+      0,
+      "-2 + math.sin(query.life_time * 60 - 0) * 1",
+      0
+     ],
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 30 - 0) * 8"
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "20 + math.sin(query.life_time * 90 - 0) * 8",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "20 + math.sin(query.life_time * 90 - 70) * 8",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "20 + math.sin(query.life_time * 90 - 140) * 8",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "20 + math.sin(query.life_time * 90 - 210) * 8",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 90 - 60) * 10.4",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 90 - 130) * 10.4",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 90 - 200) * 10.4",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 90 - 270) * 10.4",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "-10 + math.sin(query.life_time * 60 - 0) * 8"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(-10 + math.sin(query.life_time * 60 - 0) * 8)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 60 - 50) * 8"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 60 - 50) * 8)"
+     ]
+    },
+    "lids": {
+     "scale": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "5.00": [
+       0,
+       0,
+       0
+      ],
+      "5.08": [
+       1,
+       1,
+       1
+      ],
+      "5.20": [
+       1,
+       1,
+       1
+      ],
+      "5.28": [
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "animation.ghost.sneak": {
+   "loop": true,
+   "animation_length": 4,
+   "bones": {
+    "root": {
+     "position": [
+      6,
+      -4,
+      0
+     ]
+    },
+    "body": {
+     "scale": [
+      1.1,
+      0.8,
+      1.1
+     ],
+     "rotation": [
+      10,
+      0,
+      "0 + math.sin(query.life_time * 40 - 0) * 6"
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "30 + math.sin(query.life_time * 80 - 0) * 6",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "30 + math.sin(query.life_time * 80 - 70) * 6",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "30 + math.sin(query.life_time * 80 - 140) * 6",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "30 + math.sin(query.life_time * 80 - 210) * 6",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 80 - 60) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 80 - 130) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 80 - 200) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 80 - 270) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "-40 + math.sin(query.life_time * 60 - 0) * 6"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(-40 + math.sin(query.life_time * 60 - 0) * 6)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 60 - 50) * 6"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 60 - 50) * 6)"
+     ]
+    },
+    "lids": {
+     "scale": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "3.00": [
+       0,
+       0,
+       0
+      ],
+      "3.08": [
+       1,
+       1,
+       1
+      ],
+      "3.20": [
+       1,
+       1,
+       1
+      ],
+      "3.28": [
+       0,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "animation.ghost.hurt": {
+   "loop": false,
+   "animation_length": 1.2,
+   "bones": {
+    "root": {
+     "position": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "0.3": [
+       -30,
+       4,
+       20
+      ],
+      "0.9": [
+       -30,
+       4,
+       20
+      ],
+      "1.2": [
+       0,
+       0,
+       0
+      ]
+     },
+     "rotation": [
+      0,
+      "0 + math.sin(query.life_time * 2200 - 0) * 6",
+      0
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 0) * 20",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 70) * 20",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 140) * 20",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 210) * 20",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 60) * 26.0",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 130) * 26.0",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 200) * 26.0",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 600 - 270) * 26.0",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "60 + math.sin(query.life_time * 900 - 0) * 30"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(60 + math.sin(query.life_time * 900 - 0) * 30)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 900 - 50) * 30"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 900 - 50) * 30)"
+     ]
+    },
+    "lids": {
+     "scale": [
+      0,
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "animation.ghost.sleep": {
+   "loop": true,
+   "animation_length": 1.8,
+   "bones": {
+    "root": {
+     "position": [
+      0,
+      "-3 + math.sin(query.life_time * 40 - 0) * 1",
+      0
+     ],
+     "rotation": [
+      8,
+      0,
+      10
+     ]
+    },
+    "body": {
+     "scale": [
+      1,
+      "1 + math.sin(query.life_time * 70 - 0) * 0.03",
+      1
+     ]
+    },
+    "strip0": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 0) * 6",
+      0,
+      0
+     ]
+    },
+    "strip1": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 70) * 6",
+      0,
+      0
+     ]
+    },
+    "strip2": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 140) * 6",
+      0,
+      0
+     ]
+    },
+    "strip3": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 210) * 6",
+      0,
+      0
+     ]
+    },
+    "strip0b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 60) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "strip1b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 130) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "strip2b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 200) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "strip3b": {
+     "rotation": [
+      "0 + math.sin(query.life_time * 60 - 270) * 7.800000000000001",
+      0,
+      0
+     ]
+    },
+    "armL": {
+     "rotation": [
+      0,
+      0,
+      "-20 + math.sin(query.life_time * 40 - 0) * 4"
+     ]
+    },
+    "armR": {
+     "rotation": [
+      0,
+      0,
+      "-(-20 + math.sin(query.life_time * 40 - 0) * 4)"
+     ]
+    },
+    "handL": {
+     "rotation": [
+      0,
+      0,
+      "0 + math.sin(query.life_time * 40 - 50) * 4"
+     ]
+    },
+    "handR": {
+     "rotation": [
+      0,
+      0,
+      "-(0 + math.sin(query.life_time * 40 - 50) * 4)"
+     ]
+    },
+    "lids": {
+     "scale": [
+      1,
+      1,
+      1
+     ]
+    }
+   },
+   "particle_effects": {
+    "0.0": {
+     "effect": "zzz",
+     "locator": "zzz"
+    }
+   }
+  }
+ }
+}

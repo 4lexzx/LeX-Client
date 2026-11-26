@@ -4,6 +4,13 @@ const call = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
 
 contextBridge.exposeInMainWorld('lex', {
   status: call('status'),
+  snapshot: call('snapshot'),
+  files: call('files'),
+  setSelfTest: call('selftest:set'),
+  models: call('models'),
+  available: call('available'),
+  icon: call('icon'),
+  freshSkin: call('skin:fresh'),
   play: call('play'),
   modules: call('modules'),
   setModule: call('modules:set'),

@@ -602,58 +602,6 @@ def noise_fill(w, h, c, amount=0.25, scale=6.0, scales=False):
     return np.clip(rgb(c)[None, None] * k[..., None], 0, 255)
 
 
-def pet_dragon(name, skin, belly, eye, claw, wing, vein):
-    w, h = 40 * D, 32 * D
-    a = np.zeros((h, w, 4), np.uint8)
-    a[..., 3] = 255
-
-    def put(x, y, ww, hh, px):
-        a[int(y * D):int((y + hh) * D), int(x * D):int((x + ww) * D), :3] = px.astype(np.uint8)
-    c8 = 8 * D
-    put(0, 0, 8, 8, noise_fill(c8, c8, skin, scales=True))
-    b = noise_fill(c8, c8, belly, 0.12)
-    b[(np.arange(c8) % 16) < 3] *= 0.72
-    put(8, 0, 8, 8, b)
-    put(16, 0, 8, 8, noise_fill(c8, c8, skin, scales=True))
-    put(24, 0, 8, 8, noise_fill(c8, c8, skin, scales=True))
-    put(32, 0, 8, 8, noise_fill(c8, c8, skin, 0.15))
-    put(32, 8, 8, 8, noise_fill(c8, c8, claw, 0.2, 12))
-    im = Image.fromarray(a)
-    d = ImageDraw.Draw(im)
-    # ojo (cara lateral; el morro queda hacia el borde izquierdo)
-    ex, ey = 16 * D + 34, 34
-    d.polygon([(ex - 24, ey + 10), (ex - 6, ey - 14), (ex + 22, ey - 8), (ex + 12, ey + 14)], fill=(10, 8, 14, 255))
-    d.polygon([(ex - 18, ey + 8), (ex - 4, ey - 9), (ex + 16, ey - 5), (ex + 9, ey + 10)], fill=col(eye))
-    d.ellipse([ex - 3, ey - 8, ex + 5, ey + 9], fill=(8, 6, 10, 255))
-    d.ellipse([ex + 3, ey - 6, ex + 8, ey - 1], fill=(255, 255, 255, 255))
-    # fosas y boca
-    d.ellipse([32 * D + 18, 20, 32 * D + 28, 32], fill=(10, 8, 12, 255))
-    d.ellipse([32 * D + 66, 20, 32 * D + 76, 32], fill=(10, 8, 12, 255))
-    d.line([(32 * D, 66), (40 * D, 66)], fill=(16, 10, 16, 255), width=5)
-    for i in range(6):
-        x = 32 * D + 8 + i * 15
-        d.polygon([(x, 66), (x + 8, 66), (x + 4, 80)], fill=(240, 236, 224, 255))
-    # ala 16x12
-    ww, wh = 16 * D, 12 * D
-    s = Image.new('RGBA', (ww * 4, wh * 4))
-    q = ImageDraw.Draw(s)
-    f = lambda *p: [(x * ww * 4, y * wh * 4) for x, y in p]
-    edge = [(0, 0.94), (0.0, 1.0)] + bez((0.0, 0.98), (0.75, 0.96), (0.99, 0.99))
-    poly = [(0, 0.99), (0.99, 0.99)] + bez((0.99, 0.99), (0.80, 0.72), (0.93, 0.42)) + bez((0.93, 0.42), (0.62, 0.50), (0.60, 0.10)) + bez((0.60, 0.10), (0.36, 0.42), (0.20, 0.06)) + [(0.0, 0.2)]
-    q.polygon(f(*poly), fill=(255, 255, 255, 255))
-    m = np.array(s.resize((ww, wh), Image.LANCZOS))[..., 3]
-    tex = noise_fill(ww, wh, wing, 0.25, 16)
-    s2 = Image.fromarray(np.dstack([tex, m]).astype(np.uint8))
-    q2 = ImageDraw.Draw(s2)
-    for t in ((0.99, 0.99), (0.93, 0.42), (0.60, 0.10), (0.20, 0.06)):
-        q2.line([(0.06 * ww, 0.95 * wh), (t[0] * ww, t[1] * wh)], fill=col(vein), width=4)
-    arr = np.array(im)
-    region = np.array(s2)
-    region[..., 3] = np.where(m > 127, 255, 0)
-    arr[8 * D:20 * D, 0:ww] = region
-    save(name, [arr])
-
-
 def pet_lynx(name, fur, light, ink, eye):
     w, h = 32 * D, 24 * D
     a = np.zeros((h, w, 4), np.uint8)
@@ -942,11 +890,272 @@ feathers('wings-seraph', 0xfff4d6, 0xe0a848, 0xffe6a0, edge=0xffc24a)
 feathers('wings-demon', 0x5a1420, 0x18060a, 0x902030, edge=0xff5a2c)
 butterfly()
 heads()
-pet_dragon('pet-enddragon', 0x24212a, 0x3a3544, 0xd46bff, 0xb8b0c4, 0x2c2834, 0x120f16)
-pet_dragon('pet-firedragon', 0xa82a18, 0xe8a24a, 0xffe14a, 0xf0dcb0, 0xd8521c, 0x5a120a)
-pet_dragon('pet-icedragon', 0x3f9ae0, 0xd6f2ff, 0x0f3c8a, 0xf2fbff, 0x8fd4ff, 0x2a6cb8)
-pet_lynx('pet-lynx', 0x2c4f8a, 0x9fbfe8, 0x0c1630, 0x62d0ff)
-pet_lynx('pet-snowlynx', 0xe4e8f0, 0xffffff, 0x2a2e38, 0x56c8a0)
-pet_spirit()
 auras()
 trails()
+
+
+# --- alitas: las alas grandes reducidas, con variantes RGB ---
+MN = 15 * D
+
+
+def load_wing(name):
+    return Image.open(os.path.join(OUT, name + '.png')).convert('RGBA').crop((0, 0, WN, WN))
+
+
+def crisp(im, n):
+    """Reduce y realza el contorno para que se lea en pequeño."""
+    a = np.array(im.resize((n, n), Image.LANCZOS)).astype(float)
+    mask = a[..., 3] > 110
+    inner = np.array(Image.fromarray((mask * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5))) > 0
+    a[..., :3] = np.clip(a[..., :3] * 1.18, 0, 255)
+    edge = mask & ~inner
+    a[edge, :3] *= 0.55
+    a[..., 3] = np.where(mask, 255, 0)
+    return a.astype(np.uint8)
+
+
+def rainbow_over(a, t, strength=0.82):
+    yy, xx = np.mgrid[0:a.shape[0], 0:a.shape[1]] / float(a.shape[0])
+    hue = (xx * 0.55 + yy * 0.35 - t) % 1
+    c = np.stack([np.clip(np.abs(((hue + s) % 1) * 6 - 3) - 1, 0, 1) for s in (0, 2 / 3, 1 / 3)], -1) * 255
+    lum = a[..., :3].mean(-1, keepdims=True) / 255
+    k = np.clip(0.35 + lum * 1.5, 0, 1.35)
+    out = a.copy()
+    out[..., :3] = np.clip(a[..., :3] * (1 - strength) + c * k * strength, 0, 255)
+    return out
+
+
+def minis():
+    for key in ('end', 'frost', 'magma', 'gold', 'angel'):
+        save('wings-mini' + key, [crisp(load_wing('wings-' + key), MN)])
+    base = crisp(load_wing('wings-frost'), MN)
+    save('wings-minirgb', [rainbow_over(base, i / N) for i in range(N)])
+    base = crisp(load_wing('wings-angel'), MN)
+    save('wings-miniangelrgb', [rainbow_over(base, i / N, 0.7) for i in range(N)])
+    strip = Image.open(os.path.join(OUT, 'wings-morpho.png')).convert('RGBA')
+    save('wings-minimorpho', [crisp(strip.crop((0, i * WN, WN, (i + 1) * WN)), MN) for i in range(12)])
+
+
+# --- mas capas ---
+def more_capes():
+    fr = []
+    for i in range(N):
+        p = PH[i]
+        g = ramp(V, [(0, 0x9fe8ff), (0.35, 0x2aa3d8), (1, 0x062a55)])
+        ray = np.clip(np.sin((U - V * 0.35) * 14 + p) * np.sin((U - V * 0.35) * 5 + 1), 0, 1) * np.clip(0.75 - V, 0, 1)
+        g += 130 * ray[..., None]
+        caustic = np.abs(np.sin(U * 12 + 2 * np.sin(V * 9 + p)) + np.sin(V * 15 - 2 * np.cos(U * 8 - p)))
+        g += 60 * (caustic < 0.22)[..., None] * np.clip(1 - V, 0.1, 1)[..., None]
+        r = np.random.default_rng(4)
+        for _ in range(9):  # peces
+            y = 0.25 + 0.65 * r.random()
+            d = 1 if r.random() < .5 else -1
+            x = (r.random() + d * (i / N)) % 1.3 - 0.15
+            s = 0.05 + 0.03 * r.random()
+            body = ((U - x) / s) ** 2 + ((V - y) / (s * 0.28)) ** 2 < 1
+            tail = (np.abs(V - y) < (d * (x - U) - s * 0.8) * 0.55) & (d * (x - U) < s * 1.6) & (d * (x - U) > s * 0.8)
+            g = np.where((body | tail)[..., None], rgb([0xffb347, 0xff6b6b, 0xfff2a8][r.integers(3)]), g)
+        sand = V > 0.93 + 0.015 * np.sin(U * 14)
+        g = np.where(sand[..., None], rgb(0xd9c08a), g)
+        fr.append(cape_sheet(np.clip(g, 0, 255), 0x0a3a66))
+    save('cape-ocean', fr)
+
+    fr = []
+    r = np.random.default_rng(12)
+    cols, rows = 15, 24
+    glyph = r.random((64, 4, 3)) > 0.45
+    pick = r.integers(0, 64, (rows, cols))
+    start = r.random(cols)
+    speed = r.integers(1, 3, cols)
+    for i in range(N):
+        g = np.zeros((CH, CW, 3)) + rgb(0x020a06)
+        for cx in range(cols):
+            head = (start[cx] + speed[cx] * i / N) % 1 * rows
+            for cy in range(rows):
+                dist = (head - cy) % rows
+                k = max(0.0, 1 - dist / 12)
+                if k <= 0:
+                    continue
+                c = rgb(0xd8ffe4) if dist < 1 else rgb(0x22e06a) * k
+                gl = glyph[(pick[cy, cx] + (i // 4) * ((cx + cy) % 5 == 0)) % 64]
+                for yy in range(4):
+                    for xx in range(3):
+                        if gl[yy, xx]:
+                            x0, y0 = cx * 8 + xx * 2 + 1, cy * 8 + yy * 2
+                            g[y0:y0 + 2, x0:x0 + 2] = c
+        fr.append(cape_sheet(g, 0x03140a))
+    save('cape-matrix', fr)
+
+    fr = []
+    for i in range(N):
+        g = ramp(V, [(0, 0x12042e), (0.45, 0x6a1277), (0.58, 0xff4d8d), (0.6, 0xff9a4d)])
+        sun = (U - 0.5) ** 2 * 0.39 + (V - 0.46) ** 2 < 0.032
+        bars = (np.sin(V * 130) > 0.2) & (V > 0.44)
+        g = np.where((sun & ~bars)[..., None], ramp((V - 0.28) / 0.35, [(0, 0xfff08a), (1, 0xff3d8f)]), g)
+        ground = V > 0.6
+        z = 0.06 / np.clip(V - 0.585, 0.004, 1)
+        gx = np.abs(((U - 0.5) * z * 9) % 1 - 0.5) > 0.5 - np.clip(z * 0.05, 0.012, 0.2)
+        gy = ((z * 2.2 + i / N) % 1) < 0.10 + 0.03 * z
+        floor = np.where((gx | gy)[..., None], rgb(0x35f0ff), rgb(0x0b0426))
+        g = np.where(ground[..., None], floor, g)
+        fr.append(cape_sheet(np.clip(g, 0, 255), 0x1a0638))
+    save('cape-synth', fr)
+
+    fr = []
+    s = 15.0
+    q = (X * math.sqrt(3) / 3 - Y / 3) / s
+    rr = Y * 2 / 3 / s
+    xq, zr = q, rr
+    yq = -xq - zr
+    rx, ry, rz = np.round(xq), np.round(yq), np.round(zr)
+    dx, dy, dz = np.abs(rx - xq), np.abs(ry - yq), np.abs(rz - zr)
+    rx = np.where((dx > dy) & (dx > dz), -ry - rz, rx)
+    rz = np.where((dz >= dx) & (dz >= dy), -rx - ry, rz)
+    edge = np.maximum.reduce([np.abs(xq - rx - (zr - rz)), np.abs(zr - rz - (yq + rx + rz)), np.abs(yq + rx + rz - (xq - rx))])
+    cell = np.abs(np.sin(rx * 12.9898 + rz * 78.233) * 43758.5) % 1
+    for i in range(N):
+        pulse = 0.5 + 0.5 * np.sin(PH[i] * 1 + cell * TAU)
+        g = np.zeros((CH, CW, 3)) + rgb(0x07101f)
+        g += rgb(0x1566d8) * (pulse * (cell > 0.45) * 0.9)[..., None]
+        g = np.where((edge > 0.88)[..., None], rgb(0x2fd0ff) * (0.5 + 0.5 * pulse)[..., None], g)
+        fr.append(cape_sheet(trim(paste_logo(np.clip(g, 0, 255), 84, 84, tint=0xffffff, glow=0x2fd0ff), 0x2fd0ff, 3), 0x07101f))
+    save('cape-hex', fr)
+
+    weave = ((X // 4 + Y // 4) % 2 == 0)
+    g = np.where(weave[..., None], rgb(0x2b2e35), rgb(0x16181d)) * (1 + 0.35 * np.sin((U + V) * 5))[..., None]
+    save('cape-carbon', [cape_sheet(trim(paste_logo(np.clip(g, 0, 255), 92, 84, tint=0xd7dde8), 0x8d97a8, 3), 0x111317)])
+
+    g = ramp(V, [(0, 0x1b1446), (0.3, 0x7a2a6f), (0.5, 0xe8566a), (0.64, 0xffb05a), (0.72, 0xffe29a)])
+    sun = (U - 0.5) ** 2 * 0.39 + (V - 0.62) ** 2 < 0.012
+    g = np.where(sun[..., None], rgb(0xfff6cf), g)
+    for k, (c, h, f) in enumerate([(0x6a3a6a, 0.70, 5), (0x3f2450, 0.78, 8), (0x1d1330, 0.87, 6)]):
+        ridge = h - 0.05 * np.abs(np.sin(U * f + k * 2)) - 0.02 * np.sin(U * 23 + k)
+        g = np.where((V > ridge)[..., None], rgb(c), g)
+    save('cape-sunset', [cape_sheet(g, 0x2a1648)])
+
+    g = ramp(V, [(0, 0x08060c), (0.7, 0x24070c), (1, 0x0a0406)])
+    d = np.hypot((U - 0.5) * 0.625, V - 0.36)
+    moon = d < 0.17
+    craters = fbm(U * 9, V * 14, 4)
+    g += rgb(0xb01020) * np.exp(-np.clip(d - 0.17, 0, 1) * 9)[..., None] * 0.7
+    g = np.where(moon[..., None], ramp(craters, [(0.2, 0x7a0c14), (0.5, 0xd83a34), (0.8, 0xff8a6a)]), g)
+    g += 200 * (stars(1.0) * (d > 0.2) * (V < 0.8))[..., None]
+    tree = Image.new('L', (CW * SS, CH * SS))
+    dd = ImageDraw.Draw(tree)
+    rt = np.random.default_rng(2)
+
+    def twig(x, y, a, l, w, depth):
+        x2, y2 = x + math.cos(a) * l, y - math.sin(a) * l
+        dd.line([(x, y), (x2, y2)], fill=255, width=max(2, int(w)))
+        if depth:
+            for sgn in (-1, 1):
+                twig(x2, y2, a + sgn * (0.3 + rt.random() * 0.4), l * 0.74, w * 0.64, depth - 1)
+    twig(CW * SS * 0.18, CH * SS, math.pi / 2 - 0.1, CH * SS * 0.22, 26, 6)
+    twig(CW * SS * 0.9, CH * SS, math.pi / 2 + 0.2, CH * SS * 0.17, 20, 5)
+    m = np.array(tree.resize((CW, CH), Image.LANCZOS)) / 255.0
+    g = g * (1 - m[..., None]) + rgb(0x050305) * m[..., None]
+    save('cape-moon', [cape_sheet(np.clip(g, 0, 255), 0x1a0508)])
+
+    r = np.random.default_rng(31)
+    pts = np.stack([r.random(60) * CW, r.random(60) * CH], -1)
+    dist = np.sqrt((X[..., None] - pts[:, 0]) ** 2 + (Y[..., None] - pts[:, 1]) ** 2)
+    o = np.sort(dist, -1)
+    cell = dist.argmin(-1)
+    tone = (cell * 0.618) % 1
+    fr = []
+    for i in range(N):
+        k = 0.5 + 0.5 * np.sin(PH[i] + tone * TAU)
+        g = lerp(rgb(0x2c7fc4), rgb(0xd9f5ff), tone * 0.7 + 0.25 * k)
+        g *= (1.05 - 0.25 * V)[..., None]
+        g = np.where((o[..., 1] - o[..., 0] < 1.8)[..., None], rgb(0xf6fdff), g)
+        fr.append(cape_sheet(np.clip(g, 0, 255), 0x2a6aa8))
+    save('cape-ice', fr)
+
+    g = np.zeros((CH, CW, 3)) + rgb(0x6d0f24)
+    dm = (np.abs(((X + Y) / 20) % 2 - 1) < 0.09) | (np.abs(((X - Y) / 20) % 2 - 1) < 0.09)
+    g = np.where(dm[..., None], rgb(0xb8862c), g)
+    fur = (V > 0.9) | (U < 0.07) | (U > 0.93)
+    spots = (np.hypot((X % 22) - 11, (Y % 22) - 11) < 2.4)
+    g = cloth(g)
+    g = np.where(fur[..., None], np.where(spots[..., None], rgb(0x16130f), rgb(0xf6f1e4)), g)
+    save('cape-royal', [cape_sheet(paste_logo(np.clip(g, 0, 255), 72, 84, tint=0xffd36a), 0x3a0812)])
+
+    fr = []
+    for i in range(N):
+        g = np.zeros((CH, CW, 3)) + rgb(0x04060c)
+        rs = np.random.default_rng(77)
+        for layer, (n, sp, c) in enumerate([(120, 1, 0x1d3f47), (80, 1, 0x2f6f66), (46, 2, 0x63c9a6), (26, 2, 0xc7a0ff)]):
+            for _ in range(n):
+                x, y = rs.random(), (rs.random() + sp * i / N) % 1
+                w = 1 + layer // 2
+                px, py = int(x * CW), int(y * CH)
+                g[py:py + w * 2, px:px + w] = rgb(c)
+        fr.append(cape_sheet(trim(g, 0x3a1d5c, 3), 0x0a0714))
+    save('cape-endcape', fr)
+
+
+def more_effects():
+    FW, FH, K = 33, 36, 8
+
+    def make(name, draw):
+        sheet = Image.new('RGBA', (FW * 8, FH))
+        for i in range(8):
+            im = Image.new('RGBA', (FW * K, FH * K))
+            draw(ImageDraw.Draw(im), FW * K, FH * K, i / 7, i)
+            sheet.paste(im.resize((FW, FH), Image.LANCZOS), (i * FW, 0))
+        save('trail-' + name, [np.array(sheet)])
+
+    def souls(d, w, h, t, i):
+        s = w * .36 * (1 - t * .45)
+        cx, cy = w / 2 + w * .06 * math.sin(i * 1.3), h * .52
+        for k, c in ((1, (20, 90, 110)), (.78, (70, 214, 226)), (.45, (214, 252, 255))):
+            r = s * k
+            d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=c + (255,))
+            d.polygon([(cx - r * .9, cy), (cx + r * .9, cy), (cx + r * .3 * math.sin(i), cy + r * 1.9)], fill=c + (255,))
+        e = s * .2
+        for x in (-.38, .38):
+            d.ellipse([cx + s * x - e, cy - e * 1.4, cx + s * x + e, cy + e * 1.2], fill=(6, 34, 46, 255))
+    make('souls', souls)
+
+    def notes(d, w, h, t, i):
+        c = hue_rgb(t * .9)
+        s = 1 - t * .4
+        ox, oy = w * .5, h * .5
+        f = lambda x, y: (ox + x * w * s, oy + y * h * s)
+        d.ellipse([*f(-.30, .14), *f(-.04, .36)], fill=c + (255,))
+        d.ellipse([*f(.10, .06), *f(.36, .28)], fill=c + (255,))
+        d.rectangle([*f(-.10, -.36), *f(-.04, .26)], fill=c + (255,))
+        d.rectangle([*f(.30, -.42), *f(.36, .18)], fill=c + (255,))
+        d.polygon([f(-.10, -.36), f(.36, -.44), f(.36, -.28), f(-.10, -.20)], fill=c + (255,))
+    make('notes', notes)
+
+    def crit(d, w, h, t, i):
+        s = w * .46 * (1 - t * .7)
+        for k, c in ((1, (150, 70, 10)), (.8, (255, 196, 70)), (.45, (255, 250, 220))):
+            r = s * k
+            p = [(w / 2 + r * (1 if j % 2 == 0 else .22) * math.cos(TAU * j / 8 + .78), h / 2 + r * (1 if j % 2 == 0 else .22) * math.sin(TAU * j / 8 + .78)) for j in range(8)]
+            d.polygon(p, fill=c + (255,))
+    make('crit', crit)
+
+    def blood(d, w, h, t, i):
+        r = w * .32 * (1 - t * .55)
+        for k, c in ((1, (70, 4, 8)), (.82, (172, 12, 20))):
+            q = r * k
+            d.ellipse([w / 2 - q, h * .55 - q, w / 2 + q, h * .55 + q], fill=c + (255,))
+            d.polygon([(w / 2 - q * .85, h * .5), (w / 2 + q * .85, h * .5), (w / 2, h * .55 - q * 2)], fill=c + (255,))
+        d.ellipse([w / 2 - r * .5, h * .5 - r * .2, w / 2 - r * .1, h * .5 + r * .2], fill=(240, 96, 96, 255))
+    make('blood', blood)
+
+    def coins(d, w, h, t, i):
+        turn = abs(math.cos(i * .8))
+        rx, ry = w * .36 * max(.12, turn), h * .34
+        for k, c in ((1, (140, 84, 8)), (.86, (255, 196, 46)), (.6, (255, 232, 130))):
+            d.ellipse([w / 2 - rx * k, h / 2 - ry * k, w / 2 + rx * k, h / 2 + ry * k], fill=c + (255,))
+        if turn > .4:
+            d.rectangle([w / 2 - rx * .12, h / 2 - ry * .34, w / 2 + rx * .12, h / 2 + ry * .34], fill=(168, 104, 12, 255))
+    make('coins', coins)
+
+
+minis()
+more_capes()
+more_effects()

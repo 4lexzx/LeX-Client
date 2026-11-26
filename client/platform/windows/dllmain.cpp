@@ -159,6 +159,18 @@ extern "C" LEX_API bool lexInitialize(const char* configDirectory,
       }
     }
   }
+  {
+    // Un icono por mod; el nombre del archivo es el del mod sin tildes.
+    int w = 0;
+    int h = 0;
+    std::vector<std::uint8_t> rgba;
+    std::error_code ignored;
+    for (const auto& file : std::filesystem::directory_iterator(path / "icons", ignored)) {
+      if (file.path().extension() != ".png" || !lex::platform::windows::game::Cosmetics::readImage(file.path(), w, h, rgba)) continue;
+      const std::string stem = file.path().stem().string();
+      textures.add(stem == "logo" ? "logo.small" : "icon." + stem, w, h, rgba.data());
+    }
+  }
   if (hostIsMinecraft()) lex::platform::windows::game::Options::instance().start();
   if (hostIsMinecraft()) lex::platform::windows::Input::instance().startClickCounter();
   if (hostIsMinecraft()) std::thread([]() { lex::platform::windows::game::ItemPhysics::install(); }).detach();

@@ -62,6 +62,7 @@ class ImGuiLayer final : public hooks::HookSink {
 
   static ImGuiLayer* active_;
   static std::atomic<ID3D12CommandQueue*> gameQueue_;
+  static inline std::atomic<bool> chatOpen{false};  // lo lee wndProc (otro hilo)
 
   core::gui::ClickGuiModel* model_ = nullptr;
   core::IPlatform* platform_ = nullptr;
@@ -71,6 +72,8 @@ class ImGuiLayer final : public hooks::HookSink {
   int closingKey_ = 0;            // tecla que cerro el menu y sigue bloqueada
   ULONGLONG escapeAt_ = 0;
   bool paused_ = false;
+  // Chat del juego abierto (T, Enter o /): ahi la L y los atajos son letras.
+  bool chatOpen_ = false;
   bool wasGameplay_ = false;
   ULONGLONG guardUntil_ = 0;
   HWND window_ = nullptr;

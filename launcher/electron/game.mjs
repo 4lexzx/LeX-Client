@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const FAMILY = 'Microsoft.MinecraftUWP_8wekyb3d8bbwe';
@@ -11,7 +11,24 @@ const run = (file, args, timeout = 20000) => new Promise((resolve) => {
   });
 });
 
+// Ruta rapida: la carpeta del juego y su manifiesto, sin abrir PowerShell.
+function quick() {
+  for (const letter of 'CDEFGH') {
+    const dir = `${letter}:\\XboxGames\\Minecraft for Windows\\Content`;
+    if (!existsSync(join(dir, 'data', 'resource_packs', 'vanilla'))) continue;
+    for (const name of ['appxmanifest.xml', 'AppxManifest.xml']) {
+      try {
+        const version = /<Identity[^>]*\bVersion="([\d.]+)"/.exec(readFileSync(join(dir, name), 'utf8'));
+        if (version) return { installed: true, version: displayVersion(version[1]), dir };
+      } catch { /* sin permiso o sin archivo */ }
+    }
+  }
+  return null;
+}
+
 export async function detect() {
+  const found = quick();
+  if (found) return found;
   const script = 'Get-AppxPackage Microsoft.MinecraftUWP | Select-Object -First 1 Version,InstallLocation | ConvertTo-Json -Compress';
   const { out } = await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script]);
   let info = null;

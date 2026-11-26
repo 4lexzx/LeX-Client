@@ -1,8 +1,11 @@
+import { DFX_KINDS, dfxBones } from './deathfx.mjs';
+import { KILL_KINDS, killBones } from './killfx.mjs';
+
 // Catalogo, atlas y geometria de los cosmeticos. La geometria de TODOS va
 // siempre en el juego; un cosmetico se muestra u oculta repintando su region
 // del atlas (alfa 0 = invisible), por eso se puede cambiar en vivo.
 export const DENSITY = 12;
-export const ATLAS = { w: 161, h: 83 }; // 1932x996 px: tamano que la DLL reconoce
+export const ATLAS = { w: 161, h: 184 }; // 1932x2208 (112-159: cosmeticos por archivos; 160-183: mas animaciones de muerte) px: tamano que la DLL reconoce
 
 export const SLOTS = [
   { id: 'cape', label: 'Capas' },
@@ -11,6 +14,9 @@ export const SLOTS = [
   { id: 'pet', label: 'Mascotas' },
   { id: 'aura', label: 'Auras' },
   { id: 'trail', label: 'Partículas' },
+  { id: 'hit', label: 'Golpes' },
+  { id: 'kill', label: 'Kills' },
+  { id: 'death', label: 'Muertes' },
 ];
 
 const CAPE = [0, 0, 21, 16];
@@ -27,16 +33,25 @@ const EARS = [33, 34, 4, 5];
 const PHONES = [38, 34, 8, 8];
 const BAND = [0, 49, 40, 8];
 const GOGGLES = [41, 49, 20, 8];
-const PET_DRAGON = [62, 49, 40, 32];
-const PET_LYNX = [103, 49, 32, 24];
-const PET_SPIRIT = [136, 49, 16, 16];
+const MINI = [18, 58, 15, 15];
+// Texturas del propio juego, 1 texel = 1 pixel del atlas.
+export const PET_RECT = {
+  dragon: [62, 49, 30, 22], // textura del juego + fuego del aliento (8x6 a la derecha) cat: [85, 49, 6, 3], fox: [92, 49, 6, 3], parrot: [99, 49, 3, 3], allay: [103, 49, 3, 3], bee: [85, 53, 6, 6],
+};
 
 const item = (slot, key, name, rect, { frames = 1, fps = 12, geo = key } = {}) => ({ id: `${slot}-${key}`, slot, name, rect, frames, fps, geo });
 
-// Cada estela es una particula propia del juego; la DLL pinta solo la elegida.
-export const TRAIL = { w: 264, h: 40 }; // 8 fotogramas de 33 px; el alto suma el indice
-export const TRAILS = ['fire', 'bolt', 'water', 'frost', 'hearts', 'stars', 'petals', 'smoke', 'ender', 'rgb'];
-const trail = (key, name) => ({ id: `trail-${key}`, slot: 'trail', name, rect: [0, 0, 22, 3], frames: 1, fps: 12, geo: 'trail', trail: TRAILS.indexOf(key) });
+// Las particulas usan pocos emisores compartidos; la DLL pinta en cada uno el
+// dibujo elegido. El indice es el canal: su alto en pixeles es TRAIL.h + canal.
+export const TRAIL = { w: 264, h: 40 };
+export const CHANNELS_FX = ['rise', 'fall', 'burst', 'hit', 'death', 'soul'];
+const fx = (slot, key, name, channel, art = key) => ({ id: `${slot}-${key}`, slot, name, rect: [0, 0, 22, 3], frames: 1, fps: 12, geo: 'trail', trail: CHANNELS_FX.indexOf(channel), art });
+
+const pet = (key, name, kind, folder, names, tint = null, breath = null) => ({ ...item('pet', key, name, PET_RECT[kind], { geo: `pet${kind}` }), source: { folder, names, tint, breath } });
+const DRAGON_TEX = ['dragon', ['dragon.tga']];
+export const VANILLA_PETS = [
+  pet('enddragon', 'Dragón del End', 'dragon', ...DRAGON_TEX, null, [190, 70, 255]),
+];
 
 export const COSMETICS = [
   item('cape', 'lynx', 'Lince', CAPE),
@@ -49,6 +64,16 @@ export const COSMETICS = [
   item('cape', 'rgb', 'RGB', CAPE, { frames: 24 }),
   item('cape', 'glass', 'Vidriera', CAPE),
   item('cape', 'cherry', 'Cerezo', CAPE, { frames: 24, fps: 8 }),
+  item('cape', 'ocean', 'Océano', CAPE, { frames: 24 }),
+  item('cape', 'matrix', 'Código', CAPE, { frames: 24, fps: 14 }),
+  item('cape', 'synth', 'Neón', CAPE, { frames: 24, fps: 14 }),
+  item('cape', 'hex', 'Energía', CAPE, { frames: 24 }),
+  item('cape', 'carbon', 'Carbono', CAPE),
+  item('cape', 'sunset', 'Atardecer', CAPE),
+  item('cape', 'moon', 'Luna de sangre', CAPE),
+  item('cape', 'ice', 'Cristal de hielo', CAPE, { frames: 24, fps: 8 }),
+  item('cape', 'royal', 'Real', CAPE),
+  item('cape', 'endcape', 'Vacío del End', CAPE, { frames: 24, fps: 8 }),
   item('wings', 'end', 'Dragón del End', DRAGON, { geo: 'dragon' }),
   item('wings', 'frost', 'Dragón helado', DRAGON, { geo: 'dragon' }),
   item('wings', 'ender', 'Dragón ender', DRAGON, { geo: 'dragon' }),
@@ -59,6 +84,14 @@ export const COSMETICS = [
   item('wings', 'seraph', 'Serafín', WINGS, { geo: 'wing' }),
   item('wings', 'demon', 'Demonio', WINGS, { geo: 'wing' }),
   item('wings', 'morpho', 'Mariposa', WINGS, { frames: 12, fps: 10, geo: 'wing' }),
+  item('wings', 'minirgb', 'Alitas End RGB', MINI, { frames: 24, geo: 'mini' }),
+  item('wings', 'miniend', 'Alitas del End', MINI, { geo: 'mini' }),
+  item('wings', 'minifrost', 'Alitas de hielo', MINI, { geo: 'mini' }),
+  item('wings', 'minimagma', 'Alitas de magma', MINI, { geo: 'mini' }),
+  item('wings', 'minigold', 'Alitas doradas', MINI, { geo: 'mini' }),
+  item('wings', 'miniangel', 'Alitas de ángel', MINI, { geo: 'mini' }),
+  item('wings', 'miniangelrgb', 'Alitas de ángel RGB', MINI, { frames: 24, geo: 'mini' }),
+  item('wings', 'minimorpho', 'Alitas de mariposa', MINI, { frames: 12, fps: 10, geo: 'mini' }),
   item('head', 'band', 'Bandana roja', BAND, { geo: 'band' }),
   item('head', 'bandlex', 'Bandana negra LeX', BAND, { geo: 'band' }),
   item('head', 'bandblue', 'Bandana azul LeX', BAND, { geo: 'band' }),
@@ -77,26 +110,25 @@ export const COSMETICS = [
   item('head', 'fox', 'Orejas de zorro', EARS, { geo: 'cat' }),
   item('head', 'phones', 'Auriculares RGB', PHONES, { frames: 24 }),
   item('head', 'goggles', 'Gafas de aviador', GOGGLES),
-  item('pet', 'enddragon', 'Mini dragón del End', PET_DRAGON, { geo: 'petdragon' }),
-  item('pet', 'firedragon', 'Mini dragón de fuego', PET_DRAGON, { geo: 'petdragon' }),
-  item('pet', 'icedragon', 'Mini dragón de hielo', PET_DRAGON, { geo: 'petdragon' }),
-  item('pet', 'lynx', 'Mini lince', PET_LYNX, { geo: 'petlynx' }),
-  item('pet', 'snowlynx', 'Lince de las nieves', PET_LYNX, { geo: 'petlynx' }),
-  item('pet', 'spirit', 'Espíritu', PET_SPIRIT, { frames: 12, fps: 10, geo: 'petspirit' }),
+  ...VANILLA_PETS,
   item('aura', 'rune', 'Runas', AURA, { frames: 12, fps: 10, geo: 'aura' }),
   item('aura', 'ember', 'Ascuas', AURA, { frames: 12, fps: 12, geo: 'aura' }),
   item('aura', 'void', 'Vacío', AURA, { frames: 12, fps: 10, geo: 'aura' }),
   item('aura', 'frost', 'Escarcha', AURA, { frames: 12, fps: 10, geo: 'aura' }),
-  trail('fire', 'Fuego'),
-  trail('bolt', 'Rayos'),
-  trail('water', 'Agua'),
-  trail('frost', 'Nieve'),
-  trail('hearts', 'Corazones'),
-  trail('stars', 'Estrellas'),
-  trail('petals', 'Pétalos'),
-  trail('smoke', 'Humo'),
-  trail('ender', 'Ender'),
-  trail('rgb', 'RGB'),
+  // Animaciones 3D de golpe, baja y muerte.
+  ...[...DFX_KINDS, ...KILL_KINDS].map((k) => ({ id: `${k.slot}-${k.key}`, slot: k.slot, name: k.name, rect: k.rect, frames: 1, fps: 12, geo: 'dfx', kind: k.key })),
+  fx('trail', 'fire', 'Fuego', 'rise'),
+  fx('trail', 'bolt', 'Rayos', 'burst'),
+  fx('trail', 'water', 'Agua', 'fall'),
+  fx('trail', 'frost', 'Nieve', 'fall'),
+  fx('trail', 'hearts', 'Corazones', 'rise'),
+  fx('trail', 'stars', 'Estrellas', 'burst'),
+  fx('trail', 'petals', 'Pétalos', 'fall'),
+  fx('trail', 'smoke', 'Humo', 'rise'),
+  fx('trail', 'ender', 'Ender', 'rise'),
+  fx('trail', 'rgb', 'RGB', 'burst'),
+  fx('trail', 'souls', 'Almas', 'rise'),
+  fx('trail', 'notes', 'Notas', 'rise'),
 ];
 
 const FACES = ['north', 'south', 'east', 'west', 'up', 'down'];
@@ -120,17 +152,20 @@ function cape(name, [u0, v0], strips) {
       name: `${name}${i}`,
       parent: i === 0 ? 'body' : `${name}${i - 1}`,
       pivot: [0, top, 2.4],
-      cubes: [cube([-5, top - tall, 2.4], [10, tall, 0.5], {
-        south: { uv: [u0, v], uv_size: [10, tall] },
-        north: { uv: [u0 + 10, v], uv_size: [10, tall] },
-        east: { uv: [u0 + 20, v], uv_size: [1, tall] },
-        west: { uv: [u0 + 20, v], uv_size: [1, tall] },
+      // Cada tira baja un poco por detras de la siguiente, con su mismo
+      // dibujo: al ondear no quedan rendijas entre tiras.
+      cubes: [cube([-5, top - tall - (i < strips - 1 ? OVERLAP : 0), 2.4 + (i % 2) * 0.03], [10, tall + (i < strips - 1 ? OVERLAP : 0), 0.5], {
+        south: { uv: [u0, v], uv_size: [10, tall + (i < strips - 1 ? OVERLAP : 0)] },
+        north: { uv: [u0 + 10, v], uv_size: [10, tall + (i < strips - 1 ? OVERLAP : 0)] },
+        east: { uv: [u0 + 20, v], uv_size: [1, tall + (i < strips - 1 ? OVERLAP : 0)] },
+        west: { uv: [u0 + 20, v], uv_size: [1, tall + (i < strips - 1 ? OVERLAP : 0)] },
         ...(i === 0 ? { up: { uv: [u0, v0], uv_size: [10, 1] } } : {}),
         ...(i === strips - 1 ? { down: { uv: [u0, v0 + 15], uv_size: [10, 1] } } : {}),
       })],
     };
   });
 }
+const OVERLAP = 0.5;
 const capeBones = [...cape('lexCape', CAPE, STRIPS), ...cape('lexPlain', CAPE_PLAIN, 1)];
 
 // --- alas planas: dos tramos por lado; la raiz del dibujo esta a la izquierda ---
@@ -143,9 +178,11 @@ const membrane = (side, [u0, v0], from, width, z) => {
 };
 function wingBones(side) {
   const name = side > 0 ? 'lexWingL' : 'lexWingR';
+  // Tres tramos (hombro, codo, punta): cada uno sigue al anterior con retraso.
   return [
-    { name, parent: 'body', pivot: [side, 20, 2.9], cubes: [membrane(side, WINGS, 0, FOLD, 2.9)] },
-    { name: `${name}2`, parent: name, pivot: [side * (1 + FOLD), 20, 2.9], cubes: [membrane(side, WINGS, FOLD, 30 - FOLD, 2.9)] },
+    { name, parent: 'body', pivot: [side, 20, 2.9], cubes: [membrane(side, WINGS, 0, 10, 2.9)] },
+    { name: `${name}2`, parent: name, pivot: [side * 11, 20, 2.9], cubes: [membrane(side, WINGS, 10, 10, 2.9)] },
+    { name: `${name}3`, parent: `${name}2`, pivot: [side * 21, 20, 2.9], cubes: [membrane(side, WINGS, 20, 10, 2.9)] },
   ];
 }
 
@@ -210,10 +247,12 @@ const G = (u, v, w, h) => ({ uv: [GOGGLES[0] + u, GOGGLES[1] + v], uv_size: [w, 
 const lens = (x) => cube([x, 27.2, -5.2], [3.4, 2.8, 1.2], { north: G(0, 0, 8, 6), ...Object.fromEntries(['south', 'east', 'west', 'up', 'down'].map((f) => [f, G(9, 0, 4, 4)])) });
 
 const headBones = [
-  head('lexHalo', [cube([-6, 35.5, -6], [12, 0.8, 12], {
-    up: haloUv, down: haloUv,
-    ...faces(SIDES, [HALO[0] + 4, HALO[1] + 0.6], [4, 0.5]),
-  })], { pivot: [0, 35.5, 0] }),
+  // Aro 3D: 16 segmentos alrededor de la cabeza con el dibujo del anillo
+  // (y su brillo animado) en un plano fino por dentro.
+  head('lexHalo', [
+    cube([-6, 35.9, -6], [12, 0, 12], { up: haloUv, down: haloUv }),
+    ...Array.from({ length: 16 }, (_, i) => cube([-1.05, 35.4, -5.6], [2.1, 1, 1], all([HALO[0] + 0.7, HALO[1] + 5.6], [0.6, 0.8]), { pivot: [0, 35.9, 0], rotation: [0, i * 22.5, 0] })),
+  ], { pivot: [0, 35.9, 0] }),
   head('lexCrown', [
     cube([-5, 31, -4.8], [10, 6, 0.4], { north: crownUv, south: crownUv }),
     cube([-5, 31, 4.4], [10, 6, 0.4], { north: crownUv, south: crownUv }),
@@ -254,94 +293,19 @@ const headBones = [
   ]),
 ];
 
-// --- mascotas: flotan junto al hombro ---
-const PX = -18; // derecha del jugador
-const PY = 34;
-const D = (u, v, w, h) => ({ uv: [PET_DRAGON[0] + u, PET_DRAGON[1] + v], uv_size: [w, h] });
+// --- alitas: asoman por los lados sin tapar la capa ---
+const miniBones = [1, -1].map((side) => {
+  const straight = { uv: [MINI[0], MINI[1]], uv_size: [15, 15] };
+  const flipped = { uv: [MINI[0] + 15, MINI[1]], uv_size: [-15, 15] };
+  return {
+    name: side > 0 ? 'lexMiniL' : 'lexMiniR', parent: 'body', pivot: [side * 2, 21, 3.1],
+    cubes: [cube([side > 0 ? 2 : -13, 14, 3.1], [11, 11, 0], side > 0 ? { north: straight } : { north: flipped })],
+  };
+});
+
+// --- mascota propia: flota junto al hombro. Las demas usan modelos del juego
+// y las arma electron/vanilla.mjs ---
 const six = (f, over = {}) => ({ ...Object.fromEntries(FACES.map((k) => [k, f])), ...over });
-const SKIN = D(0, 0, 8, 8);
-const BELLY = D(8, 0, 8, 8);
-const CLAW = D(32, 8, 8, 8);
-const petDragon = [
-  {
-    name: 'lexPetDragon', pivot: [PX, PY, 0],
-    cubes: [
-      cube([PX - 2.2, PY - 2, -3], [4.4, 4, 7], six(SKIN, { down: BELLY })),
-      ...[-1.6, 0.6, 2.8].map((z) => cube([PX - 0.4, PY + 2, z - 0.6], [0.8, 1, 1.2], six(CLAW))),
-      ...[[-2.4, -2.2], [1, -2.2], [-2.4, 2.2], [1, 2.2]].map(([x, z]) => cube([PX + x, PY - 3.8, z - 0.2], [1.4, 2.2, 1.6], six(SKIN, { down: CLAW, north: CLAW }))),
-    ],
-  },
-  {
-    name: 'lexPetDragonHead', parent: 'lexPetDragon', pivot: [PX, PY + 1, -3],
-    cubes: [
-      cube([PX - 1.2, PY, -5], [2.4, 2.4, 2.6], six(SKIN)),
-      cube([PX - 2.2, PY + 0.2, -8.6], [4.4, 3.8, 4], six(SKIN, { west: D(16, 0, 8, 8), east: { uv: [PET_DRAGON[0] + 24, PET_DRAGON[1]], uv_size: [-8, 8] }, up: D(24, 0, 8, 8), down: BELLY })),
-      cube([PX - 1.6, PY + 0.2, -11], [3.2, 1.9, 2.4], six(D(32, 0, 8, 8))),
-      ...[-1.9, 1].map((x) => cube([PX + x, PY + 3.6, -5.8], [0.9, 0.9, 2.8], six(CLAW), { pivot: [PX + x, PY + 4, -5.8], rotation: [24, 0, 0] })),
-    ],
-  },
-  {
-    name: 'lexPetDragonTail', parent: 'lexPetDragon', pivot: [PX, PY, 4],
-    cubes: [cube([PX - 1.3, PY - 1, 3.8], [2.6, 2.4, 3.4], six(SKIN)), cube([PX - 0.3, PY + 1.4, 4.8], [0.6, 0.8, 1], six(CLAW))],
-  },
-  {
-    name: 'lexPetDragonTail2', parent: 'lexPetDragonTail', pivot: [PX, PY, 7.2],
-    cubes: [cube([PX - 0.8, PY - 0.6, 7], [1.6, 1.6, 3.8], six(SKIN)), cube([PX - 1.6, PY - 0.2, 10.6], [3.2, 0.5, 2], six(CLAW))],
-  },
-  ...[1, -1].map((s) => ({
-    name: s > 0 ? 'lexPetDragonL' : 'lexPetDragonR', parent: 'lexPetDragon', pivot: [PX + s * 1.8, PY + 1.6, -1],
-    cubes: [
-      cube([s > 0 ? PX + 1.8 : PX - 12.8, PY + 1.6, -2.4], [11, 0, 8], { up: s > 0 ? D(0, 8, 16, 12) : { uv: [PET_DRAGON[0] + 16, PET_DRAGON[1] + 8], uv_size: [-16, 12] } }),
-      cube([s > 0 ? PX + 1.8 : PX - 12.8, PY + 1.2, -2.7], [11, 0.8, 0.8], six(CLAW)),
-    ],
-  })),
-];
-
-const L = (u, v, w, h) => ({ uv: [PET_LYNX[0] + u, PET_LYNX[1] + v], uv_size: [w, h] });
-const FUR = L(0, 0, 8, 8);
-const petLynx = [
-  {
-    name: 'lexPetLynx', pivot: [PX, PY, 0],
-    cubes: [
-      cube([PX - 2.4, PY - 3, -2.6], [4.8, 4.4, 6.4], six(FUR, { north: L(8, 0, 8, 8) })),
-      ...[[-2.4, -2.4], [0.8, -2.4], [-2.4, 2.2], [0.8, 2.2]].map(([x, z]) => cube([PX + x, PY - 4.8, z], [1.6, 2, 1.6], six(FUR, { down: L(8, 0, 8, 8) }))),
-    ],
-  },
-  {
-    name: 'lexPetLynxHead', parent: 'lexPetLynx', pivot: [PX, PY + 1, -2],
-    cubes: [
-      cube([PX - 3, PY + 0.2, -6.4], [6, 5, 4.8], six(FUR, { north: L(16, 0, 12, 10) })),
-      cube([PX - 1.2, PY + 0.5, -7.2], [2.4, 1.6, 1], six(L(8, 0, 8, 8), { north: L(16, 11, 6, 4) })),
-      ...[[-3, 10], [1, -10]].flatMap(([x, r]) => [
-        cube([PX + x, PY + 5.1, -4.4], [2, 1.6, 1.2], six(FUR, { north: L(24, 11, 4, 4) }), { pivot: [PX + x + 1, PY + 5, -4], rotation: [0, 0, r] }),
-        cube([PX + x + 0.5, PY + 6.6, -4.2], [1, 1.2, 0.8], six(FUR), { pivot: [PX + x + 1, PY + 5, -4], rotation: [0, 0, r] }),
-        cube([PX + x + 0.8, PY + 7.7, -4], [0.4, 1.4, 0.4], six(L(0, 16, 4, 4)), { pivot: [PX + x + 1, PY + 5, -4], rotation: [0, 0, r] }),
-      ]),
-      ...[-3.8, 2.8].map((x) => cube([PX + x, PY + 0.2, -5.2], [1, 2.4, 1.6], six(L(8, 8, 4, 4)))),
-    ],
-  },
-  {
-    name: 'lexPetLynxTail', parent: 'lexPetLynx', pivot: [PX, PY, 3.6],
-    cubes: [cube([PX - 0.8, PY - 0.6, 3.4], [1.6, 1.6, 3.4], six(FUR)), cube([PX - 0.9, PY - 0.7, 6.4], [1.8, 1.8, 1], six(L(0, 16, 4, 4)))],
-  },
-];
-
-const S = (u, v, w, h) => ({ uv: [PET_SPIRIT[0] + u, PET_SPIRIT[1] + v], uv_size: [w, h] });
-const petSpirit = [
-  {
-    name: 'lexPetSpirit', pivot: [PX, PY, 0],
-    cubes: [cube([PX - 2.6, PY - 2.4, -2.6], [5.2, 5.2, 5.2], six(S(8, 0, 8, 8), { north: S(0, 0, 8, 8) }))],
-  },
-  {
-    name: 'lexPetSpiritTail', parent: 'lexPetSpirit', pivot: [PX, PY - 2.4, 0],
-    cubes: [cube([PX - 1.8, PY - 4, -1.4], [3.6, 1.8, 3.6], six(S(0, 8, 8, 8))), cube([PX - 1, PY - 5.4, -0.4], [2, 1.6, 2.4], six(S(0, 8, 8, 8)))],
-  },
-  {
-    name: 'lexPetSpiritOrbs', pivot: [PX, PY, 0],
-    cubes: [0, 120, 240].map((a) => cube([PX + 4.4, PY - 0.6, -0.6], [1.2, 1.2, 1.2], six(S(8, 8, 8, 8)), { pivot: [PX, PY, 0], rotation: [0, a, 0] })),
-  },
-];
-
 // --- aura: suelo, muro de llamas o runas y cristales en orbita. Sin padre:
 // agacharse mueve el esqueleto, pero no el suelo. ---
 const A = (u, v, w, h) => ({ uv: [AURA[0] + u, AURA[1] + v], uv_size: [w, h] });
@@ -362,19 +326,48 @@ const auraBones = [
   },
 ];
 
+// Alas a la altura de los hombros (antes quedaban bajas, en la cintura).
+const lift = (dy) => (b) => ({
+  ...b,
+  pivot: [b.pivot[0], b.pivot[1] + dy, b.pivot[2]],
+  cubes: b.cubes.map((c) => ({ ...c, origin: [c.origin[0], c.origin[1] + dy, c.origin[2]], ...(c.pivot ? { pivot: [c.pivot[0], c.pivot[1] + dy, c.pivot[2]] } : {}) })),
+});
+const WING_LIFT = 4;
+const MINI_LIFT = 3;
+
 export const BONES = [
-  ...capeBones, ...wingBones(1), ...wingBones(-1), ...dragonBones(1), ...dragonBones(-1),
-  ...headBones, ...petDragon, ...petLynx, ...petSpirit, ...auraBones,
+  ...capeBones,
+  ...[...wingBones(1), ...wingBones(-1), ...dragonBones(1), ...dragonBones(-1)].map(lift(WING_LIFT)),
+  ...miniBones.map(lift(MINI_LIFT)),
+  ...headBones, ...auraBones,
 ];
+
+// Cosmeticos por archivos (launcher/cosmetics/*): el launcher los lee al
+// arrancar y los registra aqui, junto a los del catalogo fijo.
+export const FILE_DATA = { animations: {}, controllers: {}, entity: { animations: {}, animate: [], particles: {} }, particles: [] };
+export function registerFiles(compiled) {
+  for (const item of compiled.items) if (!COSMETICS.some((c) => c.id === item.id)) COSMETICS.push(item);
+  for (const bone of compiled.bones) if (!BONES.some((b) => b.name === bone.name)) BONES.push(bone);
+  Object.assign(FILE_DATA, { animations: compiled.animations, controllers: compiled.controllers, entity: compiled.entity, particles: compiled.particles });
+}
 
 export const find = (id) => COSMETICS.find((c) => c.id === id) ?? null;
 
 // Huesos que pertenecen a cada cosmetico (para las vistas previas).
-export const bonesOf = (id) => {
+export const bonesOf = (id, extra = []) => {
   const c = find(id);
-  if (!c || c.slot === 'trail') return [];
-  const prefix = { cape: 'lexCape', wing: 'lexWing', dragon: 'lexDragon' }[c.geo] ?? (c.slot === 'cape' ? 'lexCape' : `lex${c.geo}`);
-  return BONES.filter((b) => {
+  if (!c || c.geo === 'trail') return [];
+  if (c.file) {
+    const root = `lexF${c.file.id}`;
+    return [...BONES, ...extra].filter((b) => b.name === root || b.name.startsWith(`${root}_`));
+  }
+  if (c.geo === 'dfx') {
+    const all = c.slot === 'hit' ? dfxBones('lexDfx', c.slot) : killBones('lexDfx', [c.kind]);
+    const root = `lexDfx${c.kind}`;
+    return all.filter((b) => b.name === root || b.name.startsWith(`${root}_`)).map((b) => (b.name === root ? { ...b, parent: undefined } : b));
+  }
+  const prefix = { cape: 'lexCape', wing: 'lexWing', dragon: 'lexDragon', mini: 'lexMini' }[c.geo] ?? (c.slot === 'cape' ? 'lexCape' : `lex${c.geo}`);
+  return [...BONES, ...extra].filter((b) => {
     const name = b.name.toLowerCase();
     const p = prefix.toLowerCase();
     if (c.slot === 'cape' || c.slot === 'wings' || c.slot === 'pet' || c.slot === 'aura' || c.geo === 'band') return name.startsWith(p);
@@ -382,10 +375,20 @@ export const bonesOf = (id) => {
   });
 };
 
+// Cosmeticos que cambiaron de nombre: se pasa al equivalente nuevo.
+const RENAMED = {
+  'kill-skull': 'kill-execution', 'kill-bolt': 'kill-wrath', 'kill-firework': 'kill-rocket', 'kill-crown': 'kill-blackhole',
+  'death-soul': 'death-ascension', 'death-angel': 'death-ascension', 'death-grave': 'death-bleed', 'death-coffin': 'death-bleed',
+  'pet-wyvern': 'pet-dragon', 'pet-wyvern-red': 'pet-dragon', 'pet-wyvern-black': 'pet-dragon-black', 'pet-wyvern-gold': 'pet-dragon', 'pet-wyvern-blue': 'pet-dragon',
+  'pet-dragonfire': 'pet-dragon', 'pet-dragonfire-black': 'pet-dragon-black', 'pet-dragonfire-bronze': 'pet-dragon', 'pet-dragonice': 'pet-dragon',
+  'pet-dragonice-white': 'pet-dragon', 'pet-dragonice-sapphire': 'pet-dragon', 'pet-dragonstorm': 'pet-dragon-black', 'pet-dragonstorm-copper': 'pet-dragon', 'pet-dragonstorm-electric': 'pet-dragon-black',
+  'pet-cat-black': 'pet-cat', 'pet-cat-white': 'pet-cat', 'pet-cat-gray': 'pet-cat-orange', 'pet-ghost-blue': 'pet-ghost', 'pet-ghost-purple': 'pet-ghost', 'pet-ghost-mint': 'pet-ghost',
+};
+
 export function cleanLoadout(value) {
   const out = {};
   for (const { id } of SLOTS) {
-    const found = find(value?.[id]);
+    const found = find(value?.[id]) ?? find(RENAMED[value?.[id]]);
     out[id] = found?.slot === id ? found.id : null;
   }
   return out;

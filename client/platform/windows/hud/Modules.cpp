@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <vector>
@@ -201,6 +202,45 @@ class Accuracy final : public TextHud {
   unsigned serial_ = 0;
   unsigned long long hits_ = 0;
   unsigned long long base_ = 0;
+  ULONGLONG last_ = 0;
+};
+
+// Bajas de la partida en un servidor: muertes a tu lado justo despues de
+// atacar. Vuelve a cero al morir y al cambiar de partida (la pantalla de carga
+// entre mapas corta el HUD mas de 1.5 s). En un mundo propio no se muestra.
+class Kills final : public TextHud {
+ public:
+  Kills() : TextHud("Kills", "Bajas de la partida en servidores; vuelve a cero al morir o cambiar de partida", "icon.module.hurtcam", 0.992f, 0.30f) {
+    settings().add<BoolSetting>("Récord", "Mejor partida de la sesión", true);
+    setEnabled(true);
+  }
+  bool visible() const override {
+    game::PlayerList::instance().touch();
+    return game::PlayerList::instance().snapshot().size() > 1;
+  }
+  std::string text() override {
+    const ULONGLONG now = GetTickCount64();
+    if (last_ != 0 && now - last_ > 1500) kills_ = 0;  // otra partida
+    last_ = now;
+    const unsigned confirmed = game::confirmedKills();
+    if (confirmed != seen_) {
+      if (seen_ != ~0u) kills_ += static_cast<int>(confirmed - seen_);
+      seen_ = confirmed;
+    }
+    const auto p = game::playerData();
+    const bool dead = p.valid && p.health <= 0;
+    if (dead && !dead_) kills_ = 0;
+    dead_ = dead;
+    best_ = std::max(best_, kills_);
+    std::string out = format("Kills %d", kills_);
+    if (setting<BoolSetting>(*this, "Récord").value() && best_ > 0) out += format("  Récord %d", best_);
+    return out;
+  }
+
+ private:
+  int kills_ = 0, best_ = 0;
+  unsigned seen_ = ~0u;
+  bool dead_ = false;
   ULONGLONG last_ = 0;
 };
 
@@ -498,6 +538,38 @@ class CapePhysics final : public ScreenModule {
   void paint(ImDrawList&, ImVec2, float) override { game::Cosmetics::instance().setCapePhysics(true); }
 };
 
+// Tiñe a otros jugadores con tu color al recibir daño.
+class HitColor final : public ScreenModule {
+ public:
+  HitColor() : ScreenModule("Color de golpe", "Color de los jugadores al recibir daño", Category::Visual, "icon.module.hurtcam") {
+    settings().add<ColorSetting>("Color", "Color e intensidad", Color{0.25f, 0.65f, 1.0f, 0.7f});
+    settings().add<BoolSetting>("RGB", "Recorre el arcoíris", false);
+    setEnabled(true);
+  }
+  void onDisable() override {
+    last_ = 0;
+    publish(0);
+  }
+  void paint(ImDrawList&, ImVec2, float) override {
+    Color c = setting<ColorSetting>(*this, "Color").value();
+    if (setting<BoolSetting>(*this, "RGB").value()) {
+      ImGui::ColorConvertHSVtoRGB(std::floor(std::fmod(static_cast<float>(ImGui::GetTime()) * 0.35f, 1.0f) * 24.0f) / 24.0f, 0.9f, 1.0f, c.r, c.g, c.b);
+    }
+    const ImU32 now = ImGui::ColorConvertFloat4ToU32(ImVec4(c.r, c.g, c.b, c.a));
+    if (now == last_) return;
+    last_ = now;
+    publish(now);
+  }
+
+ private:
+  static void publish(ImU32 color) {
+    std::vector<std::uint8_t> fill(71 * 71 * 4);
+    for (std::size_t i = 0; i < fill.size(); i += 4) std::memcpy(&fill[i], &color, 4);
+    game::LiveTextures::instance().set(game::Live::HitColor, 71, 71, std::move(fill));
+  }
+  ImU32 last_ = 0;
+};
+
 class ItemPhysicsModule final : public ScreenModule {
  public:
   ItemPhysicsModule() : ScreenModule("Física de objetos", "Los objetos tirados giran al caer y quedan en el suelo", Category::Visual, "icon.module.test") {
@@ -568,24 +640,29 @@ class ArmorWarning final : public ScreenModule {
 // ---------------------------------------------------------------- visual
 class PlayerHealth final : public ScreenModule {
  public:
-  PlayerHealth() : ScreenModule("Vida de jugadores", "Vida sobre otros jugadores, nunca criaturas", Category::Visual, "icon.module.nametag") {}
+  PlayerHealth() : ScreenModule("Vida de jugadores", "Vida sobre el nombre de otros jugadores", Category::Visual, "icon.module.nametag") {
+    settings().add<BoolSetting>("Estimar si no la envían", "Calcula la vida por los golpes cuando el servidor no la publica (se marca con ~)", true);
+    setEnabled(true);  // despues del ajuste: al activarse lo lee
+  }
   void onEnable() override { publish(true); }
   void onDisable() override { publish(false); }
   void paint(ImDrawList&, ImVec2, float) override {
-    if (!published_) publish(true);
+    const bool estimate = setting<BoolSetting>(*this, "Estimar si no la envían").value();
+    if (!published_ || estimate != estimate_) publish(true);
   }
 
  private:
   // Corazon y numero en pixel art, con contorno y sin fondo.
-  static bool pixel(int hp, int x, int y, std::uint8_t (&rgb)[3]) {
+  static bool pixel(int hp, bool estimated, int x, int y, std::uint8_t (&rgb)[3]) {
     static constexpr const char* kHeart[8] = {".##...##.", "####.####", "#########", "#########", ".#######.", "..#####..", "...###...", "....#...."};
-    static constexpr const char* kDigits[10][7] = {
+    static constexpr const char* kDigits[11][7] = {
         {".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."}, {"..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."},
         {".###.", "#...#", "....#", "..##.", ".#...", "#....", "#####"}, {".###.", "#...#", "....#", "..##.", "....#", "#...#", ".###."},
         {"...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."}, {"#####", "#....", "####.", "....#", "....#", "#...#", ".###."},
         {"..##.", ".#...", "#....", "####.", "#...#", "#...#", ".###."}, {"#####", "....#", "...#.", "...#.", "..#..", "..#..", "..#.."},
-        {".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."}, {".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.."}};
-    const std::string text = std::to_string(hp);
+        {".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."}, {".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.."},
+        {".....", ".....", ".#...", "#.#.#", "...#.", ".....", "....."}};  // el ultimo es ~
+    const std::string text = (estimated ? ":" : "") + std::to_string(hp);
     const int total = 9 + 3 + static_cast<int>(text.size()) * 6 - 1;
     const int left = (kCellsX - total) / 2;
     const auto solid = [&](int cx, int cy, int& kind) {
@@ -622,22 +699,26 @@ class PlayerHealth final : public ScreenModule {
 
   void publish(bool on) {
     for (int hp = 0; hp < game::kHealthSteps; ++hp) {
-      const int width = 131 + hp;
+     for (const bool estimated : {false, true}) {
+      const int width = (estimated ? 181 : 131) + hp;
       std::vector<std::uint8_t> plate(static_cast<std::size_t>(width) * 36 * 4, 0);
-      for (int y = 0; on && y < 36; ++y) {
+      for (int y = 0; on && hp > 0 && (!estimated || setting<BoolSetting>(*this, "Estimar si no la envían").value()) && y < 36; ++y) {
         for (int x = 0; x < width; ++x) {
           std::uint8_t rgb[3];
-          if (!pixel(hp, x * kCellsX / width, y * kCellsY / 36, rgb)) continue;
+          if (!pixel(hp, estimated, x * kCellsX / width, y * kCellsY / 36, rgb)) continue;
           std::uint8_t* out = &plate[(static_cast<std::size_t>(y) * width + x) * 4];
           std::copy_n(rgb, 3, out);
           out[3] = 255;
         }
       }
-      game::LiveTextures::instance().set(static_cast<game::Live>(static_cast<int>(game::Live::Health) + hp), width, 36, std::move(plate));
+      game::LiveTextures::instance().set(static_cast<game::Live>(static_cast<int>(estimated ? game::Live::Estimate : game::Live::Health) + hp), width, 36, std::move(plate));
+     }
     }
     published_ = on;
+    estimate_ = setting<BoolSetting>(*this, "Estimar si no la envían").value();
   }
   bool published_ = false;
+  bool estimate_ = true;
 };
 
 class LowHealth final : public ScreenModule {
@@ -684,7 +765,7 @@ class TabList final : public ScreenModule {
     const bool faces = setting<BoolSetting>(*this, "Caras").value();
     const bool logos = setting<BoolSetting>(*this, "Logo LeX").value();
     const auto* logo = gui::TextureStore::instance().find("logo.small");
-    const float row = 15 * s, gap = 1 * s, pad = 5 * s, text = 12.5f * s, icon = 12 * s, mark = 10 * s;
+    const float row = 18 * s, gap = 1 * s, pad = 5 * s, text = 13.5f * s, icon = 14 * s, mark = 17 * s;
     ImFont* font = fonts().bold != nullptr ? fonts().bold : ImGui::GetFont();
 
     const std::size_t count = players.size();
@@ -888,9 +969,9 @@ std::string moduleStatus(const core::module::Module& module) {
   if (module.name() != "Vida de jugadores") return {};
   const auto peer = game::peerHealth();
   if (!peer.seen) return "Acércate a otro jugador para comprobar si este servidor envía su vida.";
-  if (peer.highest <= 0) return "Este servidor no envía la vida de los demás: no hay dato que mostrar.";
-  if (peer.lowest == peer.highest) return "El servidor envía siempre " + std::to_string(peer.highest) + ". Si no baja al golpear, no la actualiza.";
-  return "Este servidor envía la vida de los demás.";
+  if (peer.highest <= 0) return "Este servidor no envía la vida de los demás. Con la estimación activa verás un valor aproximado (~).";
+  if (peer.lowest == peer.highest) return "El servidor envía siempre " + std::to_string(peer.highest) + ". Si no baja al golpear, no la actualiza y se usa la estimación (~).";
+  return "Este servidor envía la vida de los demás: lo que ves es real y en vivo.";
 }
 
 bool settingAvailable(const core::module::Module& module, const std::string& name) {
@@ -924,12 +1005,14 @@ void registerAllModules() {
   add<TabList>();
   add<CapePhysics>();
   add<ItemPhysicsModule>();
+  add<HitColor>();
   add<HitMarker>();
   add<ArmorWarning>();
   add<EnchantGlint>();
   add<HideHand>();
   add<GuiOpacity>();
   add<ClearVision>();
+  add<Kills>();
   add<Accuracy>();
   add<CombatTimer>();
   add<Clock>();

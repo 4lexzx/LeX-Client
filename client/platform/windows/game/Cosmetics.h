@@ -30,6 +30,11 @@ class Cosmetics {
     std::string name;
     std::string parent;
     std::array<float, 3> pivot{};
+    // Movimiento ciclico: por eje, base + amp * sin(t * vel + fase) + lin * t.
+    std::array<std::array<float, 5>, 3> motion{};
+    std::array<float, 5> lift{};
+    bool moves = false;
+    bool hidden = false;  // escala 0 en reposo (p. ej. el fuego del dragon)
     std::vector<Cube> cubes;
   };
   struct Item {
@@ -39,6 +44,13 @@ class Cosmetics {
     std::array<int, 4> rect{};  // pixeles dentro del atlas
     std::array<int, 4> alt{};   // segunda region (capa sin fisica); vacia si no hay
     int trail = -1;             // indice de particula
+    // Particulas propias (cosmeticos por archivos): canal y PNG a pintar.
+    std::vector<std::pair<int, std::string>> particles;
+    // Vista previa animada (cosmeticos por archivos): por hueso y fotograma,
+    // giro xyz, posicion xyz y escala xyz ya calculados por el launcher.
+    float animFps = 0.0f;
+    int animFrames = 0;
+    std::map<std::string, std::vector<std::array<float, 9>>> anim;
     int frames = 1;
     int fps = 12;
     bool valid = false;
@@ -51,6 +63,7 @@ class Cosmetics {
   void update(float delta);
   void record(ID3D12Device* device, ID3D12GraphicsCommandList* list, std::size_t frameSlot);
   void releaseGpu();
+  void invalidate() { painted_ = nullptr; }
 
   const std::vector<Item>& items() const noexcept { return items_; }
   const std::filesystem::path& directory() const noexcept { return directory_; }
@@ -80,6 +93,7 @@ class Cosmetics {
   void readLoadout();
   void saveLoadout();
   void publishTrail();
+  void publishParticles();
 
   std::filesystem::path directory_;
   std::filesystem::file_time_type loadoutTime_{};
@@ -95,6 +109,9 @@ class Cosmetics {
   double time_ = 0.0;
   float clock_ = 0.0f;
   bool capePhysics_ = true;
+  bool killShown_ = false;
+  bool particlesDirty_ = true;
+  std::map<std::string, std::vector<std::uint8_t>> particleCache_;
 };
 
 }  // namespace lex::platform::windows::game

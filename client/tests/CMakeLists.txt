@@ -14,3 +14,8 @@ add_executable(lex-hook-tests hook_tests_main.cpp NullPlatform.cpp)
 target_include_directories(lex-hook-tests PRIVATE ${CMAKE_SOURCE_DIR})
 target_link_libraries(lex-hook-tests PRIVATE lex-core lex-platform-windows)
 add_test(NAME lex-hook-tests COMMAND lex-hook-tests)
+
+add_executable(lex-cosmetics-tests cosmetics_tests_main.cpp)
+target_include_directories(lex-cosmetics-tests PRIVATE ${CMAKE_SOURCE_DIR})
+target_link_libraries(lex-cosmetics-tests PRIVATE lex-core lex-platform-windows)
+add_test(NAME lex-cosmetics-tests COMMAND lex-cosmetics-tests)

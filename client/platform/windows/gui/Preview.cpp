@@ -76,11 +76,49 @@ std::array<float, 3> pose(const std::string& bone, float t) {
   if (bone == "lexAuraWall") return {0, -t * 22, 0};
   if (bone == "lexAuraOrbs") return {0, t * 60, 0};
   if (bone == "lexBandA" || bone == "lexBandB") return {14 + std::sin(t * 2.4f) * 6, 0, 0};
-  if (bone == "lexPetDragonHead" || bone == "lexPetLynxHead") return {std::sin(t * 1.4f) * 5, std::sin(t * 0.9f) * 14, 0};
-  if (bone == "lexPetDragonTail" || bone == "lexPetDragonTail2") return {0, std::sin(t * 2.4f) * 16, 0};
-  if (bone == "lexPetDragonL") return {0, 0, 12 + std::sin(t * 8.0f) * 30};
-  if (bone == "lexPetDragonR") return {0, 0, -12 - std::sin(t * 8.0f) * 30};
-  if (bone == "lexPetLynxTail") return {-34, std::sin(t * 2.6f) * 20, 0};
+  // Mascotas: mismas poses que en el juego, sin correr.
+  if (bone.rfind("lexPet", 0) == 0) {
+    const auto is = [&](const char* name) { return bone == name; };
+    if (bone.rfind("lexPetDragon_", 0) == 0) {
+      const std::string part = bone.substr(13);
+      const float beat = t * 5.2f;
+      if (part == "wingR" || part == "wingL") return {0, 0, (part == "wingR" ? -1.0f : 1.0f) * (-8 + std::sin(beat) * 34)};
+      if (part == "tipR" || part == "tipL") return {0, 0, (part == "tipR" ? -1.0f : 1.0f) * (6 + std::sin(beat - 0.96f) * 46)};
+      if (part.rfind("fronttip", 0) == 0) return {-34, 0, 0};
+      if (part.rfind("frontfoot", 0) == 0) return {36, 0, 0};
+      if (part.rfind("front", 0) == 0) return {58, 0, 0};
+      if (part.rfind("reartip", 0) == 0) return {28, 0, 0};
+      if (part.rfind("rearfoot", 0) == 0) return {38, 0, 0};
+      if (part.rfind("rear", 0) == 0) return {62, 0, 0};
+      if (part.rfind("neck", 0) == 0) return {std::sin(t * 1.4f - (part[4] - '0') * 0.5f) * 4, std::sin(t * 0.9f - (part[4] - '0') * 0.4f) * 5, 0};
+      if (part == "head") return {6 + std::sin(t * 1.2f) * 6, std::sin(t * 0.9f) * 12, 0};
+      if (part == "jaw") return {8 + std::max(0.0f, std::sin(t)) * 14, 0, 0};
+      if (part.rfind("tail", 0) == 0) return {std::sin(t * 1.7f - (part[4] - '0') * 0.55f) * 5, std::sin(t * 2.1f - (part[4] - '0') * 0.62f) * 8, 0};
+    }
+    const float sit = std::clamp(std::sin(t * 0.55f) * 3.0f, 0.0f, 1.0f);
+    const float walk = std::sin(t * 6.0f) * 30.0f * (1.0f - sit);
+    if (is("lexPetCat_body") || is("lexPetFox_body")) return {-26 * sit, 0, 0};
+    if (is("lexPetCat_head") || is("lexPetFox_head")) return {24 * sit + std::sin(t) * 5, std::sin(t * 0.65f) * 22, 0};
+    if (is("lexPetCat_frontLegL") || is("lexPetFox_leg3")) return {walk + 26 * sit, 0, 0};
+    if (is("lexPetCat_frontLegR") || is("lexPetFox_leg2")) return {-walk + 26 * sit, 0, 0};
+    if (is("lexPetCat_backLegL") || is("lexPetFox_leg1")) return {-walk - 42 * sit, 0, 0};
+    if (is("lexPetCat_backLegR") || is("lexPetFox_leg0")) return {walk - 42 * sit, 0, 0};
+    if (is("lexPetCat_tail1")) return {62 - 20 * sit + std::sin(t * 1.4f) * 8, std::sin(t * 1.2f) * 16, 0};
+    if (is("lexPetCat_tail2")) return {26 + std::sin(t * 1.9f) * 18, std::sin(t * 1.6f) * 20, 0};
+    if (is("lexPetFox_tail")) return {78 + std::sin(t * 1.6f) * 8, std::sin(t * 2.1f) * 18, 0};
+    if (is("lexPetParrot_wing0")) return {0, 0, 52 - std::sin(t * 15) * 46};
+    if (is("lexPetParrot_wing1")) return {0, 0, -52 + std::sin(t * 15) * 46};
+    if (is("lexPetParrot_body")) return {24, 0, 0};
+    if (is("lexPetParrot_head")) return {std::sin(t * 1.6f) * 8, std::sin(t) * 26, 0};
+    if (is("lexPetParrot_tail")) return {30, 0, 0};
+    if (is("lexPetBee_rightwing_bone")) return {15, 15, -std::sin(t * 40) * 34};
+    if (is("lexPetBee_leftwing_bone")) return {15, -15, std::sin(t * 40) * 34};
+    if (is("lexPetAllay_left_wing")) return {0, -40 - std::sin(t * 12) * 28, 0};
+    if (is("lexPetAllay_right_wing")) return {0, 40 + std::sin(t * 12) * 28, 0};
+    if (is("lexPetAllay_body")) return {10, 0, 0};
+  }
+  if (bone == "lexMiniL") return {0, 30 + std::sin(t * 2.0f) * 8, 0};
+  if (bone == "lexMiniR") return {0, -30 - std::sin(t * 2.0f) * 8, 0};
   if (bone == "lexPetSpiritOrbs") return {0, t * 130, 0};
   if (bone == "lexDragonL") return {0, 24 + std::sin(t * 2.0f) * 8, 0};
   if (bone == "lexDragonL2") return {0, 14 + std::sin(t * 2.0f) * 8, 0};
@@ -129,7 +167,9 @@ void Preview::draw(ImDrawList& list, ImVec2 min, ImVec2 size, const std::vector<
   const auto* skin = TextureStore::instance().find("skin");
   std::vector<Quad> quads;
   quads.reserve(160);
-  if (skin != nullptr) {
+  // Animaciones de muerte: se ensenan solas, sin el personaje encima.
+  const bool effect = !worn.empty() && std::all_of(worn.begin(), worn.end(), [](const auto* i) { return i->slot == "kill" || i->slot == "death" || i->slot == "hit" || (i->slot == "pet" && !i->anim.empty()); });
+  if (skin != nullptr && !effect) {
     const ImTextureID s = skin->texture;
     addBox(quads, s, {-4, 24, -4}, {8, 8, 8}, 0, 0, 0);
     addBox(quads, s, {-4, 24, -4}, {8, 8, 8}, 32, 0, 0.5f);
@@ -151,7 +191,25 @@ void Preview::draw(ImDrawList& list, ImVec2 min, ImVec2 size, const std::vector<
     if (strip == nullptr) continue;
     const int frame = item->frames > 1 ? static_cast<int>(t * item->fps) % item->frames : 0;
     const float rx = item->rect[0] / 12.0f, ry = item->rect[1] / 12.0f, rw = item->rect[2] / 12.0f, rh = item->rect[3] / 12.0f;
+    // Muestra de la animacion de un hueso en este instante (o nada).
+    const int animFrame = item->animFrames > 0 ? static_cast<int>(t * item->animFps) % item->animFrames : 0;
+    const auto sample = [&](const game::Cosmetics::Bone& b) -> const std::array<float, 9>* {
+      const auto it = item->anim.find(b.name);
+      return it != item->anim.end() && animFrame < static_cast<int>(it->second.size()) ? &it->second[animFrame] : nullptr;
+    };
     for (const auto& bone : item->bones) {
+      // Oculto si el hueso o alguno de sus padres tiene escala 0 ahora mismo.
+      bool hiddenNow = false;
+      for (const game::Cosmetics::Bone* link = &bone; link != nullptr && !hiddenNow;) {
+        const auto* s = sample(*link);
+        hiddenNow = s != nullptr ? ((*s)[6] == 0.0f || (*s)[7] == 0.0f) : link->hidden;
+        const std::string& parent = link->parent;
+        link = nullptr;
+        for (const auto& other : item->bones) {
+          if (other.name == parent) link = &other;
+        }
+      }
+      if (hiddenNow) continue;
       for (const auto& cube : bone.cubes) {
         const V3 a{cube.origin[0], cube.origin[1], cube.origin[2]};
         const V3 b{a.x + cube.size[0], a.y + cube.size[1], a.z + cube.size[2]};
@@ -165,8 +223,19 @@ void Preview::draw(ImDrawList& list, ImVec2 min, ImVec2 size, const std::vector<
             if (cube.rotation != std::array<float, 3>{0, 0, 0}) p = rotate(p, cube.pivot, {cube.rotation[0], -cube.rotation[1], -cube.rotation[2]});
             // Cadena de huesos: propio, padre, abuelo...
             const game::Cosmetics::Bone* link = &bone;
-            for (int depth = 0; link != nullptr && depth < 12; ++depth) {
-              p = rotate(p, link->pivot, pose(link->name, t));
+            for (int depth = 0; link != nullptr && depth < 24; ++depth) {
+              const auto at = [&](const std::array<float, 5>& w) { return w[0] + w[1] * std::sin((w[2] * t + w[3]) * kRad) + w[4] * t; };
+              if (const auto* s = sample(*link)) {
+                const auto& v = *s;
+                p = {link->pivot[0] + (p.x - link->pivot[0]) * v[6], link->pivot[1] + (p.y - link->pivot[1]) * v[7], link->pivot[2] + (p.z - link->pivot[2]) * v[8]};
+                p = rotate(p, link->pivot, {v[0], -v[1], -v[2]});
+                p.x += v[3];
+                p.y += v[4];
+                p.z += v[5];
+              } else {
+                p = rotate(p, link->pivot, link->moves ? std::array<float, 3>{at(link->motion[0]), -at(link->motion[1]), -at(link->motion[2])} : pose(link->name, t));
+                p.y += at(link->lift);
+              }
               const std::string& parent = link->parent;
               link = nullptr;
               for (const auto& other : item->bones) {
@@ -184,8 +253,21 @@ void Preview::draw(ImDrawList& list, ImVec2 min, ImVec2 size, const std::vector<
   const float c = std::cos(yaw * kRad), s = std::sin(yaw * kRad);
   const float pitch = zoomHead ? 10.0f : 12.0f;
   const float pc = std::cos(pitch * kRad), ps = std::sin(pitch * kRad);
-  const float centerY = zoomHead ? 30.0f : 18.0f;
-  const float scale = std::min(size.x / (zoomHead ? 17.0f : wide ? 40.0f : 19.0f), size.y / (zoomHead ? 18.0f : 38.0f));
+  float centerY = zoomHead ? 30.0f : 18.0f;
+  float scale = std::min(size.x / (zoomHead ? 17.0f : wide ? 40.0f : 19.0f), size.y / (zoomHead ? 18.0f : 38.0f));
+  if (effect && !quads.empty()) {
+    // Encuadre segun el propio modelo (el rayo es muy alto, la lapida baja).
+    float low = 1e9f, high = -1e9f, radius = 1.0f;
+    for (const Quad& q : quads) {
+      for (const V3& p : q.p) {
+        low = std::min(low, p.y);
+        high = std::max(high, p.y);
+        radius = std::max(radius, std::sqrt(p.x * p.x + p.z * p.z));
+      }
+    }
+    centerY = (low + high) * 0.5f;
+    scale = std::min(size.x / (radius * 2.0f + 3.0f), size.y / (high - low + 4.0f));
+  }
   const ImVec2 middle(min.x + size.x * 0.5f, min.y + size.y * 0.5f);
   struct Face {
     ImVec2 p[4];

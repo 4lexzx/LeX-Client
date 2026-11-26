@@ -6,7 +6,9 @@
 #include <imgui_internal.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <map>
 #include <string>
 
 #include "platform/windows/game/Cosmetics.h"
@@ -24,6 +26,13 @@ using core::gui::ClickGuiModel;
 using core::module::Module;
 
 namespace {
+
+// En el personaje no se ponen las animaciones de muerte ni las particulas.
+std::vector<const game::Cosmetics::Item*> stageItems(std::vector<const game::Cosmetics::Item*> items) {
+  std::erase_if(items, [](const game::Cosmetics::Item* i) { return i->slot == "kill" || i->slot == "death" || i->slot == "hit"; });
+  return items;
+}
+
 
 constexpr ImU32 kText = IM_COL32(238, 244, 252, 255);
 constexpr ImU32 kMuted = IM_COL32(139, 156, 180, 255);
@@ -71,6 +80,28 @@ void text(ImDrawList* d, ImFont* f, float size, ImVec2 p, ImU32 c, const std::st
 void icon(ImDrawList* d, const std::string& id, ImVec2 p, float size, ImU32 c) {
   const ImTextureID texture = IconAtlas::instance().texture(id);
   if (texture) d->AddImage(texture, p, ImVec2(p.x + size, p.y + size), ImVec2(0, 0), ImVec2(1, 1), fade(c));
+}
+
+// Icono propio del mod; si falta, el generico.
+void moduleIcon(ImDrawList* d, const Module& module, ImVec2 p, float size, ImU32 c) {
+  static std::map<std::string, std::string> keys;
+  std::string& key = keys[module.name()];
+  if (key.empty()) {
+    key = "icon.";
+    const std::string& name = module.name();
+    for (std::size_t i = 0; i < name.size(); ++i) {
+      const auto b = static_cast<unsigned char>(name[i]);
+      if (b < 0x80) {
+        key += std::isalnum(b) ? static_cast<char>(std::tolower(b)) : '-';
+      } else if (b == 0xC3 && i + 1 < name.size()) {
+        const auto n = static_cast<unsigned char>(name[++i]) | 0x20;
+        key += n == 0xA1 ? 'a' : n == 0xA9 ? 'e' : n == 0xAD ? 'i' : n == 0xB3 ? 'o' : n == 0xBA || n == 0xBC ? 'u' : 'n';
+      }
+    }
+  }
+  const auto* entry = TextureStore::instance().find(key);
+  if (entry != nullptr && entry->texture != 0) d->AddImage(entry->texture, p, ImVec2(p.x + size, p.y + size), ImVec2(0, 0), ImVec2(1, 1), fade(c));
+  else icon(d, module.iconId(), p, size, c);
 }
 
 float anim(ImGuiID id, float target) {
@@ -190,7 +221,7 @@ void ClickGuiRenderer::draw(ClickGuiModel& model, core::IPlatform&, float s) {
     if (button("Guardar HUD", ImVec2(150 * s, 40 * s), s, accent, IM_COL32(6, 16, 30, 255))) hudEditing_ = false;
     ImGui::End();
     ImGui::PopStyleVar();
-    const char* help = "Arrastra para mover. Rueda: tamaño. Clic derecho: restablecer.";
+    const char* help = "Arrastra para mover. Rueda: tamaño. Clic derecho: restablecer. X o Supr: quitar.";
     const ImVec2 t = regular()->CalcTextSizeA(16 * s, FLT_MAX, 0, help);
     ImDrawList* fg = ImGui::GetForegroundDrawList();
     const ImVec2 p((screen.x - t.x) * 0.5f, screen.y * 0.5f + 38 * s);
@@ -277,7 +308,7 @@ void ClickGuiRenderer::draw(ClickGuiModel& model, core::IPlatform&, float s) {
     // Opciones a pagina completa: volver, nombre, descripcion y estado.
     ImGui::SetCursorPos(ImVec2(left, 26 * s));
     if (button("Volver", ImVec2(88 * s, 40 * s), s, kCard, kText)) model.closeSettings();
-    icon(d, selected->iconId(), ImVec2(o.x + left + 106 * s, o.y + 26 * s), 40 * s, selected->isEnabled() ? accent : kMuted);
+    moduleIcon(d, *selected, ImVec2(o.x + left + 108 * s, o.y + 26 * s), 38 * s, selected->isEnabled() ? IM_COL32_WHITE : kMuted);
     text(d, bold(), 22 * s, ImVec2(o.x + left + 160 * s, o.y + 24 * s), kText, selected->name());
     text(d, regular(), 15 * s, ImVec2(o.x + left + 160 * s, o.y + 50 * s), kMuted, selected->description());
     ImGui::SetCursorPos(ImVec2(size.x - 30 * s - 140 * s, 26 * s));
@@ -316,7 +347,6 @@ void ClickGuiRenderer::draw(ClickGuiModel& model, core::IPlatform&, float s) {
 }
 
 void ClickGuiRenderer::drawModules(ClickGuiModel& model, float s) {
-  const ImU32 accent = accentU32(model.theme());
   const auto modules = model.visibleModules();
   const float gap = 16 * s;
   const float avail = ImGui::GetContentRegionAvail().x - 16 * s;
@@ -341,7 +371,7 @@ void ClickGuiRenderer::drawModules(ClickGuiModel& model, float s) {
     const bool hot = ImGui::IsItemHovered();
     if (hot) ImGui::SetTooltip("%s", m.description().c_str());
     d->AddRectFilled(p, q, fade(hot ? kCardHot : kCard), 12 * s);
-    icon(d, m.iconId(), ImVec2(p.x + (w - 46 * s) * 0.5f, p.y + 22 * s), 46 * s, on ? accent : kMuted);
+    moduleIcon(d, m, ImVec2(p.x + (w - 48 * s) * 0.5f, p.y + 22 * s), 48 * s, on ? IM_COL32_WHITE : IM_COL32(132, 146, 170, 255));
     centered(d, bold(), 17 * s, ImVec2(p.x + 12 * s, p.y + 84 * s), w - 24 * s, on ? kText : IM_COL32(190, 202, 220, 255), m.name());
     const bool favorite = model.isFavorite(m.name());
     ImGui::SetCursorScreenPos(ImVec2(q.x - 40 * s, p.y + 4 * s));
@@ -423,7 +453,7 @@ void ClickGuiRenderer::drawCosmetics(float s) {
   static const struct {
     const char* slot;
     const char* label;
-  } slots[] = {{"cape", "Capas"}, {"wings", "Alas"}, {"head", "Cabeza"}, {"pet", "Mascotas"}, {"aura", "Auras"}, {"trail", "Partículas"}};
+  } slots[] = {{"cape", "Capas"}, {"wings", "Alas"}, {"head", "Cabeza"}, {"pet", "Mascotas"}, {"aura", "Auras"}, {"trail", "Partículas"}, {"hit", "Golpes"}, {"kill", "Kills"}, {"death", "Muertes"}};
   const ImVec2 origin = ImGui::GetCursorPos();
   const float full = ImGui::GetContentRegionAvail().x - 16 * s;
   const float tall = ImGui::GetContentRegionAvail().y;
@@ -435,24 +465,33 @@ void ClickGuiRenderer::drawCosmetics(float s) {
   ImGui::InvisibleButton("stage", ImVec2(stage, tall - 4 * s));
   if (ImGui::IsItemActive()) cosmeticYaw_ += ImGui::GetIO().MouseDelta.x * 0.6f;
   else cosmeticYaw_ += ImGui::GetIO().DeltaTime * 14.0f;
-  Preview::instance().draw(*d, ImVec2(sp.x + 6 * s, sp.y + 10 * s), ImVec2(stage - 12 * s, tall - 56 * s), cosmetics.worn(), cosmeticYaw_, false, true);
+  Preview::instance().draw(*d, ImVec2(sp.x + 6 * s, sp.y + 10 * s), ImVec2(stage - 12 * s, tall - 56 * s), stageItems(cosmetics.worn()), cosmeticYaw_, false, true);
   centered(d, regular(), 14 * s, ImVec2(sp.x, sp.y + tall - 34 * s), stage, kMuted, "Arrastra para girar");
 
   // Derecha: categorias y tarjetas.
   const float x0 = origin.x + stage + 22 * s;
   float x = x0;
-  for (int i = 0; i < 6; ++i) {
-    const float w = bold()->CalcTextSizeA(15 * s, FLT_MAX, 0, slots[i].label).x + 26 * s;
+  for (int i = 0; i < static_cast<int>(std::size(slots)); ++i) {
+    const float w = bold()->CalcTextSizeA(14 * s, FLT_MAX, 0, slots[i].label).x + 14 * s;
     ImGui::SetCursorPos(ImVec2(x, origin.y));
     const ImVec2 p = ImGui::GetCursorScreenPos();
     if (ImGui::InvisibleButton(slots[i].label, ImVec2(w, 36 * s))) cosmeticSlot_ = i;
     const bool active = cosmeticSlot_ == i;
     d->AddRectFilled(p, ImVec2(p.x + w, p.y + 36 * s), fade(active ? kLine : ImGui::IsItemHovered() ? kCardHot : kCard), 9 * s);
-    centered(d, bold(), 15 * s, ImVec2(p.x, p.y + 11 * s), w, active ? kText : kMuted, slots[i].label);
-    x += w + 8 * s;
+    centered(d, bold(), 14 * s, ImVec2(p.x, p.y + 11 * s), w, active ? kText : kMuted, slots[i].label);
+    x += w + 5 * s;
   }
-  ImGui::SetCursorPos(ImVec2(x0, origin.y + 52 * s));
-  ImGui::BeginChild("##grid", ImVec2(origin.x + full + 16 * s - x0, tall - 52 * s));
+  float gridTop = 52 * s;
+  if (std::string_view(slots[cosmeticSlot_].slot) == "kill" || std::string_view(slots[cosmeticSlot_].slot) == "death") {
+    // Bedrock no deja cambiar la coreografia en vivo: va en el pack al jugar.
+    ImGui::SetCursorPos(ImVec2(x0, origin.y + 46 * s));
+    ImGui::PushStyleColor(ImGuiCol_Text, kMuted);
+    ImGui::TextUnformatted("Se aplica la próxima vez que abras Minecraft desde LeX.");
+    ImGui::PopStyleColor();
+    gridTop = 74 * s;
+  }
+  ImGui::SetCursorPos(ImVec2(x0, origin.y + gridTop));
+  ImGui::BeginChild("##grid", ImVec2(origin.x + full + 16 * s - x0, tall - gridTop));
   ImDrawList* g = ImGui::GetWindowDrawList();
   const float gap = 14 * s;
   const float avail = ImGui::GetContentRegionAvail().x - 14 * s;
@@ -480,7 +519,7 @@ void ClickGuiRenderer::drawCosmetics(float s) {
       } else {
         const bool back = item.slot == "cape" || item.slot == "wings";
         const float yaw = (back ? 180.0f : item.slot == "pet" ? -24.0f : 0.0f) + std::sin(static_cast<float>(ImGui::GetTime()) * 0.9f + i) * 30.0f;
-        Preview::instance().draw(*g, box, area, {&item}, yaw, item.slot == "head", item.slot == "wings" || item.slot == "aura" || item.slot == "pet");
+        Preview::instance().draw(*g, box, area, {&item}, yaw, item.slot == "head", (item.slot == "wings" && item.id.find("mini") == std::string::npos) || item.slot == "aura" || item.slot == "pet");
       }
     }
     centered(g, bold(), 15 * s, ImVec2(p.x + 8 * s, q.y - bar - 27 * s), w - 16 * s, kText, item.name);

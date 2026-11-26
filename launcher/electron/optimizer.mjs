@@ -1,6 +1,6 @@
 // Optimizador: cambia options.txt de Minecraft con el juego cerrado y guarda
 // una copia para poder volver a los ajustes originales con un clic.
-import { copyFileSync, existsSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const COMMON = {
@@ -97,4 +97,23 @@ export function restore(usersDir) {
     restored++;
   }
   return restored;
+}
+
+// Lo que el juego tiene puesto ahora mismo (archivo mas reciente).
+export function currentOptions(usersDir) {
+  const files = optionFiles(usersDir).map((path) => ({ path, time: statSync(path).mtimeMs })).sort((a, b) => b.time - a.time);
+  if (!files.length) return [];
+  const values = Object.fromEntries(readFileSync(files[0].path, 'utf8').split(/\r?\n/).map((l) => [l.slice(0, l.indexOf(':')), l.slice(l.indexOf(':') + 1)]));
+  const on = (key) => (values[key] === undefined ? null : values[key] !== '0');
+  const cap = Number(values.gfx_max_framerate);
+  return [
+    ['Límite de FPS', on('gfx_vsync') ? 'Sincronía vertical' : cap > 0 ? `${cap} FPS` : 'Sin límite', !on('gfx_vsync')],
+    ['Distancia de visión', values.gfx_viewdistance ? `${Math.round(Number(values.gfx_viewdistance) / 16)} chunks` : '-', Number(values.gfx_viewdistance) <= 160],
+    ['Modo gráfico', { 0: 'Simple', 1: 'Elegante', 2: 'Vibrante', 3: 'Trazado de rayos' }[values.graphics_mode] ?? '-', values.graphics_mode === '0'],
+    ['Nubes', on('gfx_toggleclouds') ? 'Activadas' : 'Apagadas', !on('gfx_toggleclouds')],
+    ['Luz suave', on('gfx_smoothlighting') ? 'Activada' : 'Apagada', !on('gfx_smoothlighting')],
+    ['Sombras', Number(values.shadow_quality) > 0 ? 'Activadas' : 'Apagadas', !(Number(values.shadow_quality) > 0)],
+    ['Hojas', on('gfx_transparentleaves') ? 'Transparentes' : 'Opacas', !on('gfx_transparentleaves')],
+    ['Render multihilo', on('gfx_multithreaded_renderer') ? 'Activado' : 'Apagado', on('gfx_multithreaded_renderer')],
+  ].map(([label, value, good]) => ({ label, value, good: Boolean(good) }));
 }
