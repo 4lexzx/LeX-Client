@@ -81,6 +81,62 @@ final class PackInstaller {
         LexLog.i("Pack de LeX instalado (" + files.size() + " archivos, baja " + kill + ", muerte " + death + ")");
     }
 
+    /** Carpeta files/panel: lo que el panel nativo dibuja dentro del juego. */
+    File panelDir() {
+        File dir = new File(context.getFilesDir(), "panel");
+        dir.mkdirs();
+        return dir;
+    }
+
+    /** Catalogo, logo e iconos de los mods para el panel dentro del juego. */
+    void writePanel() throws Exception {
+        File dir = panelDir();
+        write(new File(dir, "catalog.json"), read("lex/catalog.json").getBytes(StandardCharsets.UTF_8));
+        rgba(new File(dir, "logo.rgba"), picture("ui/renderer/logo-mark.png"), 160);
+        String[] icons = assets.list("ui/renderer/icons");
+        for (int i = 0; icons != null && i < icons.length; i++) {
+            if (!icons[i].endsWith(".png")) continue;
+            File out = new File(dir, "icon-" + icons[i].substring(0, icons[i].length() - 4) + ".rgba");
+            if (!out.exists()) rgba(out, picture("ui/renderer/icons/" + icons[i]), 96);
+        }
+    }
+
+    /** Imagen normal (premultiplicada): se puede escalar con Canvas. */
+    private Bitmap picture(String path) {
+        try (InputStream in = assets.open(path)) {
+            return BitmapFactory.decodeStream(in);
+        } catch (Exception missing) {
+            return null;
+        }
+    }
+
+    /**
+     * RGBA crudo para el panel nativo: ancho y alto (int32 little-endian) y
+     * los pixeles sin premultiplicar, a lo sumo de max px de lado.
+     */
+    static void rgba(File file, Bitmap bitmap, int max) throws Exception {
+        if (bitmap == null) return;
+        int w = bitmap.getWidth(), h = bitmap.getHeight();
+        if (Math.max(w, h) > max) {
+            float k = max / (float) Math.max(w, h);
+            bitmap = Bitmap.createScaledBitmap(bitmap, Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k)), true);
+            w = bitmap.getWidth();
+            h = bitmap.getHeight();
+        }
+        int[] pixels = new int[w * h];
+        bitmap.getPixels(pixels, 0, w, 0, 0, w, h);
+        byte[] out = new byte[8 + pixels.length * 4];
+        java.nio.ByteBuffer.wrap(out, 0, 8).order(java.nio.ByteOrder.LITTLE_ENDIAN).putInt(w).putInt(h);
+        for (int i = 0, o = 8; i < pixels.length; i++, o += 4) {
+            int c = pixels[i];
+            out[o] = (byte) (c >> 16);
+            out[o + 1] = (byte) (c >> 8);
+            out[o + 2] = (byte) c;
+            out[o + 3] = (byte) (c >>> 24);
+        }
+        write(file, out);
+    }
+
     /** Quita el pack de LeX de las carpetas del juego. */
     void uninstall() {
         for (File dir : gameDirs()) {

@@ -17,7 +17,7 @@
     waiting.set(id, { ok, bad });
     native.call(id, name, JSON.stringify(args));
   });
-  const names = ['status', 'snapshot', 'files', 'play', 'modules', 'setModule', 'loadout', 'saveLoadout', 'skin', 'freshSkin', 'uninstall', 'shareLog', 'pickSkin'];
+  const names = ['status', 'snapshot', 'files', 'play', 'modules', 'setModule', 'loadout', 'saveLoadout', 'skin', 'freshSkin', 'uninstall', 'shareLog', 'pickSkin', 'thumbsNeeded', 'saveThumb'];
   window.lex = Object.fromEntries(names.map((n) => [n, call(n)]));
   Object.assign(window.lex, {
     platform: 'android',
@@ -36,4 +36,51 @@
   }
   // Java avisa cuando cambia algo fuera de la pagina (skin elegida, vuelta del juego).
   window.__lexEvent = (name, value) => dispatchEvent(new CustomEvent(`lex:${name}`, { detail: value }));
+})();
+
+// Raton en Android (teclado y raton conectados): la rueda y el arrastre mueven
+// la lista que haya debajo, aunque el WebView no lo haga solo.
+(() => {
+  const scrollable = (node, axis) => {
+    for (; node && node !== document.documentElement; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if (axis === 'y' && /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 1) return node;
+      if (axis === 'x' && /(auto|scroll)/.test(style.overflowX) && node.scrollWidth > node.clientWidth + 1) return node;
+    }
+    return null;
+  };
+  addEventListener('wheel', (e) => {
+    const dy = e.deltaMode === 1 ? e.deltaY * 40 : e.deltaY;
+    const dx = e.deltaMode === 1 ? e.deltaX * 40 : e.deltaX;
+    const row = (Math.abs(dx) > Math.abs(dy) || e.shiftKey) ? scrollable(e.target, 'x') : null;
+    const target = row ?? scrollable(e.target, 'y') ?? scrollable(e.target, 'x');
+    if (!target) return;
+    e.preventDefault();
+    if (target === row || scrollable(e.target, 'y') !== target) target.scrollLeft += dx || dy;
+    else target.scrollTop += dy;
+  }, { passive: false });
+
+  let drag = null;
+  addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('#stage')) return;
+    drag = { x: e.clientX, y: e.clientY, moved: false, ny: scrollable(e.target, 'y'), nx: scrollable(e.target, 'x') };
+  });
+  addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+    if (!drag.moved && Math.hypot(dx, dy) < 8) return;
+    drag.moved = true;
+    if (drag.ny) drag.ny.scrollTop -= dy;
+    if (drag.nx && Math.abs(dx) > Math.abs(dy)) drag.nx.scrollLeft -= dx;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+  });
+  addEventListener('pointerup', () => {
+    if (drag && drag.moved) {
+      // Un arrastre no es un toque: se anula el clic que viene detras.
+      addEventListener('click', (c) => { c.stopPropagation(); c.preventDefault(); }, { capture: true, once: true });
+    }
+    drag = null;
+  });
 })();

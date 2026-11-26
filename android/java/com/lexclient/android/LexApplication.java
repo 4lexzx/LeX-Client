@@ -50,9 +50,36 @@ public class LexApplication extends Application {
         LexLog.i("Proceso del juego: preparando Minecraft");
         try {
             minecraft = base.createPackageContext(MINECRAFT, Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
-            LexLog.i("Minecraft encontrado: " + minecraft.getApplicationInfo().sourceDir + " libs=" + minecraft.getApplicationInfo().nativeLibraryDir);
+            describe(minecraft);
         } catch (Exception error) {
             LexLog.e("No se pudo abrir el Minecraft instalado", error);
+        }
+    }
+
+    /** Donde tiene Minecraft su codigo y sus librerias (para el registro y el puente nativo). */
+    private static void describe(Context minecraft) {
+        android.content.pm.ApplicationInfo info = minecraft.getApplicationInfo();
+        StringBuilder text = new StringBuilder("Minecraft encontrado: ").append(info.sourceDir);
+        if (info.splitSourceDirs != null) for (String split : info.splitSourceDirs) text.append(" + ").append(split);
+        text.append(" | libs=").append(info.nativeLibraryDir);
+        text.append(" | extraidas=").append((info.flags & android.content.pm.ApplicationInfo.FLAG_EXTRACT_NATIVE_LIBS) != 0);
+        java.io.File[] files = info.nativeLibraryDir != null ? new java.io.File(info.nativeLibraryDir).listFiles() : null;
+        text.append(" | en carpeta=").append(files == null ? 0 : files.length);
+        String path = null;
+        try {
+            ClassLoader loader = minecraft.getClassLoader();
+            if (loader instanceof dalvik.system.BaseDexClassLoader) path = ((dalvik.system.BaseDexClassLoader) loader).findLibrary("minecraftpe");
+        } catch (Throwable error) {
+            LexLog.e("findLibrary fallo", error);
+        }
+        text.append(" | libminecraftpe=").append(path);
+        LexLog.i(text.toString());
+        if (path != null) {
+            try {
+                android.system.Os.setenv("LEX_MC_LIB", path, true);
+            } catch (Exception error) {
+                LexLog.e("No se pudo pasar la ruta al puente", error);
+            }
         }
     }
 

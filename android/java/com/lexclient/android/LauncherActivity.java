@@ -102,6 +102,74 @@ public class LauncherActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (web != null) web.evaluateJavascript("window.__lexEvent && __lexEvent('resume', null)", null);
+        worker.execute(new Runnable() {
+            @Override
+            public void run() {
+                reportGameExits();
+            }
+        });
+    }
+
+    /** Por que se cerro el juego la ultima vez (Android lo guarda): al registro y a la pantalla. */
+    private void reportGameExits() {
+        if (Build.VERSION.SDK_INT < 30) return;
+        try {
+            android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            android.content.SharedPreferences prefs = getSharedPreferences("exits", MODE_PRIVATE);
+            long seen = prefs.getLong("seen", 0);
+            long newest = seen;
+            String summary = null;
+            for (android.app.ApplicationExitInfo exit : am.getHistoricalProcessExitReasons(getPackageName(), 0, 8)) {
+                if (exit.getTimestamp() <= seen || exit.getProcessName() == null || !exit.getProcessName().endsWith(":minecraft")) continue;
+                newest = Math.max(newest, exit.getTimestamp());
+                String reason = exitReason(exit.getReason());
+                StringBuilder text = new StringBuilder("El juego se cerro: ").append(reason)
+                    .append(" | estado=").append(exit.getStatus())
+                    .append(" | ").append(exit.getDescription());
+                if (exit.getReason() == android.app.ApplicationExitInfo.REASON_ANR) {
+                    try (InputStream trace = exit.getTraceInputStream()) {
+                        if (trace != null) {
+                            String t = new String(readAll(trace), StandardCharsets.UTF_8);
+                            text.append('\n').append(t.length() > 6000 ? t.substring(0, 6000) : t);
+                        }
+                    }
+                }
+                LexLog.i(text.toString());
+                if (summary == null && exit.getReason() != android.app.ApplicationExitInfo.REASON_USER_REQUESTED
+                        && exit.getReason() != android.app.ApplicationExitInfo.REASON_USER_STOPPED
+                        && exit.getReason() != android.app.ApplicationExitInfo.REASON_EXIT_SELF) {
+                    summary = reason + (exit.getDescription() != null ? " (" + exit.getDescription() + ")" : "");
+                }
+            }
+            prefs.edit().putLong("seen", newest).apply();
+            if (summary != null) {
+                final String message = "El juego se cerró: " + summary + ". Manda el registro desde Estado.";
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        web.evaluateJavascript("window.__lexEvent && __lexEvent('crash', " + JSONObject.quote(message) + ")", null);
+                    }
+                });
+            }
+        } catch (Exception error) {
+            LexLog.e("No se pudo leer el cierre del juego", error);
+        }
+    }
+
+    private static String exitReason(int reason) {
+        switch (reason) {
+            case 4: return "fallo de Java";
+            case 5: return "fallo nativo";
+            case 6: return "no respondia (ANR)";
+            case 2: return "senal del sistema";
+            case 3: return "falta de memoria";
+            case 1: return "se cerro solo";
+            case 10: return "cerrado por el usuario";
+            case 11: return "detenido por el usuario";
+            case 7: return "fallo al iniciar";
+            case 13: return "otro motivo";
+            default: return "motivo " + reason;
+        }
     }
 
     @Override
@@ -175,6 +243,8 @@ public class LauncherActivity extends Activity {
             case "skin":
             case "freshSkin": return skin();
             case "play": return play();
+            case "thumbsNeeded": return thumbsNeeded(args.getJSONArray(0));
+            case "saveThumb": return saveThumb(args.getString(0), args.getString(1));
             case "uninstall": return uninstall();
             case "shareLog": runOnUiThread(new Runnable() { @Override public void run() { shareLog(); } }); return null;
             case "pickSkin": runOnUiThread(new Runnable() { @Override public void run() { pickSkin(); } }); return null;
@@ -208,7 +278,7 @@ public class LauncherActivity extends Activity {
         s.put("running", false);
         s.put("android", true);
         s.put("note", version != null
-            ? "Minecraft " + version + ". En el juego, toca el botón LeX o pulsa L con teclado."
+            ? "Minecraft " + version + ". En el juego, toca el botón LeX o pulsa X con teclado."
             : "Instala Minecraft desde la Play Store para jugar con LeX.");
         return s;
     }
@@ -381,6 +451,7 @@ public class LauncherActivity extends Activity {
         if (minecraftVersion() == null) throw new Exception("Instala Minecraft desde la Play Store primero.");
         if (installer == null) throw new Exception("El APK de LeX está dañado: reinstálalo.");
         installer.install(loadoutMap());
+        installer.writePanel();
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -391,6 +462,35 @@ public class LauncherActivity extends Activity {
             }
         });
         return new JSONObject().put("ok", true).put("message", "Abriendo Minecraft con LeX…");
+    }
+
+    /** Cosmeticos sin miniatura para el panel (se rehacen al cambiar de version de LeX). */
+    private JSONArray thumbsNeeded(JSONArray ids) throws Exception {
+        if (installer == null) return new JSONArray();
+        installer.writePanel();
+        File dir = installer.panelDir();
+        File stamp = new File(dir, "thumbs.version");
+        String version = lexVersion();
+        String saved = stamp.exists() ? new String(readAll(new FileInputStream(stamp)), StandardCharsets.UTF_8) : "";
+        if (!version.equals(saved)) {
+            File[] old = dir.listFiles();
+            for (int i = 0; old != null && i < old.length; i++) if (old[i].getName().startsWith("thumb-")) old[i].delete();
+            write(stamp, version.getBytes(StandardCharsets.UTF_8));
+        }
+        JSONArray missing = new JSONArray();
+        for (int i = 0; i < ids.length(); i++) {
+            String id = ids.getString(i);
+            if (id.matches("[a-z0-9-]+") && !new File(dir, "thumb-" + id + ".rgba").exists()) missing.put(id);
+        }
+        return missing;
+    }
+
+    private boolean saveThumb(String id, String dataUrl) throws Exception {
+        if (installer == null || !id.matches("[a-z0-9-]+") || !dataUrl.startsWith("data:image/png;base64,")) return false;
+        byte[] png = Base64.decode(dataUrl.substring(dataUrl.indexOf(',') + 1), Base64.DEFAULT);
+        android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.length);
+        PackInstaller.rgba(new File(installer.panelDir(), "thumb-" + id + ".rgba"), bitmap, 200);
+        return true;
     }
 
     private JSONObject uninstall() throws Exception {

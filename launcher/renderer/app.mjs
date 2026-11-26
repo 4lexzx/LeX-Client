@@ -99,8 +99,8 @@ function preview(item, index) {
   const back = item.slot === 'cape' || item.slot === 'wings';
   const base = back ? 180 : item.slot === 'pet' ? -24 : 0;
   node.paint = (time) => {
-    if (item.geo === 'trail') viewer.sparks(node, item, time);
-    else viewer.draw(node, [item], { yaw: base + Math.sin(time * 0.9 + index) * 30, head: item.slot === 'head', wide: (item.slot === 'wings' && item.geo !== 'mini') || item.slot === 'aura' || item.slot === 'pet', time, focus: ['pet', 'kill', 'death', 'hit'].includes(item.slot) });
+    if (item.geo === 'trail') return viewer.sparks(node, item, time);
+    return viewer.draw(node, [item], { yaw: base + Math.sin(time * 0.9 + index) * 30, head: item.slot === 'head', wide: (item.slot === 'wings' && item.geo !== 'mini') || item.slot === 'aura' || item.slot === 'pet', time, focus: ['pet', 'kill', 'death', 'hit'].includes(item.slot) });
   };
   cards.add(node);
   return node;
@@ -269,6 +269,26 @@ const pages = {
   },
 };
 
+// Miniaturas para el panel dentro del juego (en Android no hay visor 3D alli):
+// cada tarjeta se dibuja una vez y Java la guarda.
+async function makeThumbs() {
+  const ids = COSMETICS.filter((c) => !c.source).map((c) => c.id);
+  const missing = (await attempt(() => lex.thumbsNeeded(ids))) ?? [];
+  for (const id of missing) {
+    const item = find(id);
+    if (!item) continue;
+    const node = preview(item, 0);
+    cards.delete(node);
+    let ready = false;
+    for (let tries = 0; tries < 40 && !ready; tries++) {
+      await new Promise((r) => setTimeout(r, 60));
+      node.getContext('2d').clearRect(0, 0, node.width, node.height);
+      ready = node.paint(item.geo === 'trail' ? 0.45 : 0) !== false && tries > 2;
+    }
+    if (ready) await attempt(() => lex.saveThumb(id, node.toDataURL('image/png')));
+  }
+}
+
 function androidSettings(s) {
   const list = el('dl');
   for (const [k, v, ok] of s.rows) list.append(el('dt', { textContent: k }), el('dd', { textContent: v, className: ok ? '' : 'bad' }));
@@ -323,6 +343,7 @@ const back = async () => {
 };
 addEventListener('focus', back);
 addEventListener('lex:resume', back);
+addEventListener('lex:crash', (e) => toast({ ok: false, message: e.detail }));
 addEventListener('lex:skin', async (e) => {
   await viewer.setSkin(e.detail);
   toast({ ok: true, message: 'Skin cambiada.' });
@@ -338,6 +359,7 @@ if (quick && quick !== saved) await viewer.setSkin(quick);
 refresh();
 setInterval(refresh, 15000);
 viewer.setExtra((await attempt(() => lex.models())) ?? []);
+if (android) makeThumbs();
 available = new Set((await attempt(() => lex.available())) ?? []);
 const newest = (await attempt(() => lex.freshSkin())) ?? quick;
 if (newest) {

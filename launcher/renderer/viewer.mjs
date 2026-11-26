@@ -156,10 +156,27 @@ export function createViewer(load) {
   let skin = null;
   const textures = new Map(); // id -> { texture, image } | 'cargando'
 
+  // Las animaciones son tiras muy altas (hasta 6912 px); muchas GPU de movil
+  // no pasan de 4096 y la textura sale negra. Si no cabe, se reduce entera
+  // (las coordenadas son relativas, asi que los fotogramas siguen cuadrando).
+  const maxSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096;
+  function fit(image) {
+    const w = image.naturalWidth ?? image.width;
+    const h = image.naturalHeight ?? image.height;
+    const k = Math.min(1, maxSize / Math.max(w, h));
+    if (k >= 1) return image;
+    const small = document.createElement('canvas');
+    small.width = Math.max(1, Math.floor(w * k));
+    small.height = Math.max(1, Math.floor(h * k));
+    const g = small.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.drawImage(image, 0, 0, small.width, small.height);
+    return small;
+  }
   function upload(image) {
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fit(image));
     for (const [k, v] of [[gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE], [gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.NEAREST]]) gl.texParameteri(gl.TEXTURE_2D, k, v);
     return texture;
   }

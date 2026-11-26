@@ -18,7 +18,7 @@ public class LexComponentFactory extends AppComponentFactory {
             Thread.currentThread().setContextClassLoader(minecraft);
             try {
                 Activity activity = (Activity) Class.forName(className, true, minecraft).getDeclaredConstructor().newInstance();
-                LexLog.i("Actividad del juego creada: " + className);
+                LexLog.i("Actividad del juego creada: " + className + " (libreria del juego ya cargada: " + gameLibraryLoaded() + ")");
                 return activity;
             } catch (ReflectiveOperationException error) {
                 LexLog.e("No se pudo crear " + className, error);
@@ -26,5 +26,19 @@ public class LexComponentFactory extends AppComponentFactory {
             }
         }
         return super.instantiateActivity(loader, className, intent);
+    }
+
+    /** Si las clases de Mojang ya cargaron su libminecraftpe.so (se ve en /proc/self/maps). */
+    private static boolean gameLibraryLoaded() {
+        try (java.io.BufferedReader maps = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
+            for (String line; (line = maps.readLine()) != null; ) {
+                if (line.contains("com.mojang.minecraftpe") && (line.contains("libminecraftpe.so") || line.contains(".apk"))) {
+                    if (line.contains("r-xp")) return true;
+                }
+            }
+        } catch (Exception ignored) {
+            // sin acceso: se sabra por el registro nativo
+        }
+        return false;
     }
 }
